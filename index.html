@@ -3,19 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Gen Absensi OCR</title>
+  <title>E-Gen Absensi AI</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <style>
-    /* Efek Glossy & Animasi */
-    body { background-color: #0f172a; color: white; }
+    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .glass-panel {
       background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
@@ -34,15 +32,15 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 font-sans">
+<body class="min-h-screen flex items-center justify-center p-4">
 
   <div class="glass-panel w-full max-w-md rounded-2xl p-6 sm:p-8 flex flex-col items-center">
     
     <div class="text-center mb-8">
       <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-        E-Gen Absensi OCR
+        E-Gen Absensi AI
       </h2>
-      <p class="text-slate-400 text-sm mt-2">Ekstrak riwayat kehadiran ke format CSV</p>
+      <p class="text-slate-400 text-sm mt-2">Mesin Vision: Gemini / OpenAI</p>
     </div>
 
     <div class="w-full mb-6">
@@ -50,22 +48,18 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-blue-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
-        <span id="fileNameDisplay" class="text-slate-300 font-medium">Pilih File Gambar</span>
+        <span id="fileNameDisplay" class="text-slate-300 font-medium">Pilih Bukti Absensi</span>
       </label>
       <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="updateFileName()">
     </div>
 
     <button id="uploadBtn" onclick="processFile()" class="btn-glossy w-full py-3 rounded-lg font-bold text-white uppercase tracking-wide text-sm">
-      Upload & Ekstrak
+      Analisa & Ekstrak
     </button>
 
   </div>
 
   <script>
-    // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxyrh6-ALaqQuR1dq8ZEAx705f8mwMSKZaD_MdtLNXhiRkM9KNZx_0pfBx3mPQk0a3V/exec";
-
-    // Konfigurasi SweetAlert Toast
     const Toast = Swal.mixin({
       toast: true,
       position: 'top-end',
@@ -80,9 +74,7 @@
     function updateFileName() {
       const input = document.getElementById('fileInput');
       const display = document.getElementById('fileNameDisplay');
-      if (input.files.length > 0) {
-        display.innerText = input.files[0].name;
-      }
+      if (input.files.length > 0) display.innerText = input.files[0].name;
     }
 
     async function processFile() {
@@ -90,41 +82,36 @@
       const btn = document.getElementById('uploadBtn');
 
       if (fileInput.files.length === 0) {
-        Toast.fire({ icon: 'warning', title: 'Pilih gambar terlebih dahulu!' });
+        Toast.fire({ icon: 'warning', title: 'Pilih foto absensi dulu!' });
         return;
       }
 
       const file = fileInput.files[0];
-      
-      // Tampilan Loading Keren
       btn.disabled = true;
-      btn.innerText = "Memproses OCR...";
+      btn.innerText = "Memproses Vision AI...";
       
       Swal.fire({
-        title: 'Mengekstrak Data...',
-        html: 'Mesin AI sedang membaca gambar.<br>Mohon tunggu sebentar.',
+        title: 'Menganalisa Data...',
+        html: 'AI sedang mengekstrak jam masuk dan pulang.<br>Mohon tunggu sebentar.',
         allowOutsideClick: false,
         background: '#0f172a',
         color: '#fff',
-        didOpen: () => {
-          Swal.showLoading();
-        }
+        didOpen: () => { Swal.showLoading(); }
       });
 
-      // Konversi Gambar ke Base64
       const reader = new FileReader();
       reader.onload = async function(e) {
         const base64Data = e.target.result;
         
         try {
-          // Kirim ke Google Apps Script API
-          const response = await fetch(GAS_WEB_APP_URL, {
+          // Memanggil Vercel Serverless Function
+          const response = await fetch('/api/ocr', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              fileName: file.name,
+              mimeType: file.type,
               base64: base64Data
-            }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
           });
           
           const result = await response.json();
@@ -132,21 +119,18 @@
           if (result.status === 'success' && result.data.length > 0) {
             Swal.fire({
               icon: 'success',
-              title: 'Berhasil!',
-              text: `Berhasil mengekstrak ${result.data.length} baris data.`,
+              title: 'Ekstraksi Selesai!',
+              text: `Berhasil mencatat ${result.data.length} baris kehadiran.`,
               background: '#0f172a',
               color: '#fff',
               confirmButtonColor: '#3b82f6'
             });
-            
-            // Konversi JSON ke CSV dan Download
             generateCSV(result.data);
-            
           } else {
              Swal.fire({
               icon: 'error',
               title: 'Gagal',
-              text: 'Data absensi tidak ditemukan dalam gambar.',
+              text: result.message || 'Data tidak terdeteksi oleh AI.',
               background: '#0f172a',
               color: '#fff',
               confirmButtonColor: '#3b82f6'
@@ -155,51 +139,38 @@
         } catch (error) {
           Swal.fire({
             icon: 'error',
-            title: 'Kesalahan Sistem',
-            text: 'Terjadi masalah koneksi ke server GAS.',
+            title: 'Koneksi Terputus',
+            text: 'Gagal menghubungi server Vercel API.',
             background: '#0f172a',
             color: '#fff',
             confirmButtonColor: '#3b82f6'
           });
         } finally {
           btn.disabled = false;
-          btn.innerText = "Upload & Ekstrak";
+          btn.innerText = "Analisa & Ekstrak";
           fileInput.value = "";
-          document.getElementById('fileNameDisplay').innerText = "Pilih File Gambar";
+          document.getElementById('fileNameDisplay').innerText = "Pilih Bukti Absensi";
         }
       };
-      
       reader.readAsDataURL(file);
     }
 
-    // Fungsi untuk membuat dan mendownload CSV sesuai template
     function generateCSV(dataArray) {
-      // Header persis seperti file template
       const header = ["NIP", "TANGGAL", "KATEGORI", "JENIS", "WAKTU", "KETERANGAN"];
-      
-      // Map data object ke array of string untuk CSV
       const csvRows = [header.join(",")];
       
       dataArray.forEach(row => {
-        const values = [
-          row.nip,
-          row.tanggal,
-          row.kategori,
-          row.jenis,
-          row.waktu,
-          row.keterangan
-        ];
+        const values = [row.nip, row.tanggal, row.kategori, row.jenis, row.waktu, row.keterangan];
         csvRows.push(values.join(","));
       });
       
       const csvString = csvRows.join("\n");
       const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
       
-      // Auto-download file
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", "Import_Absensi_HASIL.csv");
+      link.setAttribute("download", "Import_Absensi_M_ZAEN_SYACHRULLAH_HASIL.csv");
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
