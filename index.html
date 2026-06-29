@@ -3,19 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Gen Absensi AI</title>
+  <title>E-Gen Absensi AI Pro</title>
   
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- SweetAlert2 untuk Notifikasi & Loading Keren -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- FontAwesome untuk Ikon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
-    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { 
+      background-color: #0f172a; 
+      color: white; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
     .glass-panel {
       background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-item {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
     .btn-glossy {
       background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
@@ -29,37 +46,63 @@
       background: #334155;
       cursor: not-allowed;
       opacity: 0.7;
+      transform: none;
+      box-shadow: none;
     }
+    
+    /* Custom Scrollbar untuk list file */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="p-4 items-center justify-center flex">
 
-  <div class="glass-panel w-full max-w-md rounded-2xl p-6 sm:p-8 flex flex-col items-center">
+  <div class="glass-panel w-full max-w-lg rounded-2xl p-6 sm:p-8 flex flex-col relative">
     
-    <div class="text-center mb-8">
-      <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-        E-Gen Absensi AI
-      </h2>
-      <p class="text-slate-400 text-sm mt-2">Mesin Vision: Gemini / OpenAI</p>
-    </div>
-
-    <div class="w-full mb-6">
-      <label for="fileInput" class="block w-full border-2 border-dashed border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-blue-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-        </svg>
-        <span id="fileNameDisplay" class="text-slate-300 font-medium">Pilih Bukti Absensi</span>
-      </label>
-      <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="updateFileName()">
-    </div>
-
-    <button id="uploadBtn" onclick="processFile()" class="btn-glossy w-full py-3 rounded-lg font-bold text-white uppercase tracking-wide text-sm">
-      Analisa & Ekstrak
+    <!-- Tombol Settings (Pojok Kanan Atas) -->
+    <button onclick="openSettings()" class="absolute top-6 right-6 text-slate-400 hover:text-blue-400 transition-colors" title="Pengaturan API Key">
+      <i class="fas fa-cog text-xl"></i>
     </button>
 
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h2 class="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
+        E-Gen Absensi AI
+      </h2>
+      <p class="text-slate-400 text-sm mt-2">Upload <b class="text-white">Banyak Gambar</b> Sekaligus</p>
+    </div>
+
+    <!-- Area Upload (Mendukung Multiple) -->
+    <div class="w-full mb-4">
+      <label for="fileInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
+        <i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-3"></i>
+        <p class="text-slate-300 font-medium">Klik untuk Pilih Gambar</p>
+        <p class="text-slate-500 text-xs mt-1">(Bisa pilih lebih dari satu foto)</p>
+      </label>
+      <!-- Tambahan atribut "multiple" agar bisa banyak gambar -->
+      <input type="file" id="fileInput" accept="image/*" multiple class="hidden" onchange="handleFiles()">
+    </div>
+
+    <!-- Area List File yang Dipilih -->
+    <div id="fileListContainer" class="w-full mb-6 max-h-40 overflow-y-auto hidden">
+      <h3 class="text-sm text-slate-400 mb-2 font-semibold">File Terpilih:</h3>
+      <ul id="fileList" class="space-y-2">
+        <!-- List file akan muncul di sini via JS -->
+      </ul>
+    </div>
+
+    <!-- Tombol Proses -->
+    <button id="processBtn" onclick="processAllFiles()" disabled class="btn-glossy w-full py-3 sm:py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm">
+      <i class="fas fa-magic mr-2"></i> Ekstrak Semua Gambar
+    </button>
   </div>
 
   <script>
+    const NIP_USER = "199006212025211050";
+    let selectedFiles = [];
+
+    // Konfigurasi SweetAlert Toast
     const Toast = Swal.mixin({
       toast: true,
       position: 'top-end',
@@ -71,88 +114,250 @@
       customClass: { popup: 'glass-panel' }
     });
 
-    function updateFileName() {
-      const input = document.getElementById('fileInput');
-      const display = document.getElementById('fileNameDisplay');
-      if (input.files.length > 0) display.innerText = input.files[0].name;
+    // Cek API Key saat web dimuat
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!savedKey) {
+        setTimeout(openSettings, 1000); // Minta API Key jika belum ada
+      }
+    });
+
+    function openSettings() {
+      const currentKey = localStorage.getItem('GEMINI_API_KEY') || '';
+      Swal.fire({
+        title: 'Pengaturan Mesin AI',
+        html: `
+          <p class="text-sm text-slate-300 mb-4 text-left">Masukkan <b>Gemini API Key</b> Anda. Key ini disimpan secara aman di browser Anda dan tidak akan dikirim ke server manapun kecuali langsung ke Google.</p>
+          <input id="swal-input-apikey" class="swal2-input bg-slate-800 text-white border border-slate-600 rounded-lg w-full max-w-xs" placeholder="AIzaSy..." value="${currentKey}">
+        `,
+        background: '#0f172a',
+        color: '#fff',
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#475569',
+        preConfirm: () => {
+          const key = document.getElementById('swal-input-apikey').value;
+          if (!key) {
+            Swal.showValidationMessage('API Key tidak boleh kosong');
+          }
+          return key;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.setItem('GEMINI_API_KEY', result.value);
+          Toast.fire({ icon: 'success', title: 'API Key Tersimpan!' });
+        }
+      });
     }
 
-    async function processFile() {
-      const fileInput = document.getElementById('fileInput');
-      const btn = document.getElementById('uploadBtn');
+    function handleFiles() {
+      const input = document.getElementById('fileInput');
+      const container = document.getElementById('fileListContainer');
+      const list = document.getElementById('fileList');
+      const btn = document.getElementById('processBtn');
 
-      if (fileInput.files.length === 0) {
-        Toast.fire({ icon: 'warning', title: 'Pilih foto absensi dulu!' });
+      // Tambahkan file baru ke array (tidak menimpa yang lama)
+      Array.from(input.files).forEach(file => {
+        // Cek duplikasi nama file
+        if (!selectedFiles.some(f => f.name === file.name)) {
+          selectedFiles.push(file);
+        }
+      });
+      
+      // Render ulang list UI
+      renderFileList();
+
+      if (selectedFiles.length > 0) {
+        container.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerText = `Ekstrak ${selectedFiles.length} Gambar`;
+      } else {
+        container.classList.add('hidden');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak Semua Gambar`;
+      }
+      
+      // Reset input file agar bisa pilih file yang sama lagi jika dihapus
+      input.value = ""; 
+    }
+
+    function renderFileList() {
+      const list = document.getElementById('fileList');
+      list.innerHTML = "";
+      
+      selectedFiles.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = "glass-item rounded-lg p-3 flex justify-between items-center text-sm";
+        
+        const namaFile = file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name;
+        
+        li.innerHTML = `
+          <div class="flex items-center text-slate-200">
+            <i class="fas fa-image text-blue-400 mr-3"></i>
+            ${namaFile}
+          </div>
+          <button onclick="removeFile(${index})" class="text-red-400 hover:text-red-300 transition">
+            <i class="fas fa-trash"></i>
+          </button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      handleFiles(); // Update UI
+    }
+
+    async function processAllFiles() {
+      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!apiKey) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'API Key Belum Diisi',
+          text: 'Klik ikon gear/pengaturan di pojok kanan atas untuk memasukkan Gemini API Key.',
+          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
+        });
         return;
       }
 
-      const file = fileInput.files[0];
+      const btn = document.getElementById('processBtn');
       btn.disabled = true;
-      btn.innerText = "Memproses Vision AI...";
-      
-      Swal.fire({
+
+      // Loading Keren SweetAlert dengan Progress dinamis
+      let progressPopup = Swal.fire({
         title: 'Menganalisa Data...',
-        html: 'AI sedang mengekstrak jam masuk dan pulang.<br>Mohon tunggu sebentar.',
+        html: `Memproses gambar <b id="progressCount">1</b> dari <b>${selectedFiles.length}</b><br><br><span class="text-sm text-slate-400">Mohon jangan tutup halaman ini.</span>`,
         allowOutsideClick: false,
         background: '#0f172a',
         color: '#fff',
         didOpen: () => { Swal.showLoading(); }
       });
 
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const base64Data = e.target.result;
-        
-        try {
-          // Memanggil Vercel Serverless Function
-          const response = await fetch('/api/ocr', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              mimeType: file.type,
-              base64: base64Data
-            })
-          });
-          
-          const result = await response.json();
+      let allExtractedData = [];
+      let successCount = 0;
+      let failCount = 0;
 
-          if (result.status === 'success' && result.data.length > 0) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Ekstraksi Selesai!',
-              text: `Berhasil mencatat ${result.data.length} baris kehadiran.`,
-              background: '#0f172a',
-              color: '#fff',
-              confirmButtonColor: '#3b82f6'
-            });
-            generateCSV(result.data);
+      // Loop Pemrosesan berurutan (Sequential) agar API tidak Rate Limit
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        
+        // Update UI Angka Progress
+        const progressCountEl = document.getElementById('progressCount');
+        if(progressCountEl) progressCountEl.innerText = (i + 1);
+
+        try {
+          const base64Data = await toBase64(file);
+          const mimeType = file.type;
+          
+          // Panggil fungsi ekstrak
+          const resultData = await extractDataFromGemini(base64Data, mimeType, apiKey);
+          
+          if (resultData && resultData.length > 0) {
+            allExtractedData = allExtractedData.concat(resultData);
+            successCount++;
           } else {
-             Swal.fire({
-              icon: 'error',
-              title: 'Gagal',
-              text: result.message || 'Data tidak terdeteksi oleh AI.',
-              background: '#0f172a',
-              color: '#fff',
-              confirmButtonColor: '#3b82f6'
-            });
+            failCount++;
           }
         } catch (error) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Koneksi Terputus',
-            text: 'Gagal menghubungi server Vercel API.',
-            background: '#0f172a',
-            color: '#fff',
-            confirmButtonColor: '#3b82f6'
-          });
-        } finally {
-          btn.disabled = false;
-          btn.innerText = "Analisa & Ekstrak";
-          fileInput.value = "";
-          document.getElementById('fileNameDisplay').innerText = "Pilih Bukti Absensi";
+          console.error("Error pada file", file.name, error);
+          failCount++;
         }
-      };
+      }
+
+      if (allExtractedData.length > 0) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Selesai!',
+          html: `Berhasil mengekstrak <b>${successCount}</b> gambar.<br>Gagal: ${failCount} gambar.<br><br>Total Data Kehadiran: <b>${allExtractedData.length} baris</b>.`,
+          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
+        });
+        
+        // Generate dan Download 1 File CSV Gabungan
+        generateCSV(allExtractedData);
+        
+        // Bersihkan list file setelah sukses
+        selectedFiles = [];
+        handleFiles();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Ekstrak',
+          text: 'Tidak ada data kehadiran yang terdeteksi dari semua gambar yang diupload.',
+          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
+        });
+      }
+
+      btn.disabled = false;
+    }
+
+    // Helper: Konversi File ke Base64
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
       reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]); // Ambil data murninya saja
+      reader.onerror = error => reject(error);
+    });
+
+    async function extractDataFromGemini(base64Data, mimeType, apiKey) {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      
+      const payload = {
+        contents: [{
+          parts: [
+            { text: "Ekstrak riwayat kehadiran dari gambar ini. Cari tanggal, jam masuk, jam pulang, dan jenis kehadiran (seperti 'Fleksibel Bekerja Secara Lokasi' atau 'Bekerja di Kantor'). KEMBALIKAN HANYA JSON ARRAY MURNI TANPA MARKDOWN (tanpa ```json). Format yang wajib diikuti: [{\"tanggal\": \"DD-MM-YYYY\", \"jamMasuk\": \"HH:MM\", \"jamPulang\": \"HH:MM\", \"jenis\": \"Fleksibel Bekerja Secara Lokasi\"}]." },
+            { inlineData: { mimeType: mimeType, data: base64Data } }
+          ]
+        }]
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error('API Request Failed');
+
+      const data = await response.json();
+      
+      if (!data.candidates || data.candidates.length === 0) return [];
+
+      // Bersihkan teks AI menjadi JSON murni
+      let jsonString = data.candidates[0].content.parts[0].text;
+      jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      const parsedData = JSON.parse(jsonString);
+      let formattedResults = [];
+
+      // Parsing berdasar aturan (Template Tidak Berubah)
+      parsedData.forEach(item => {
+        if (item.jamMasuk && item.jamMasuk !== '-' && item.jamMasuk !== '--:--') {
+          formattedResults.push({
+            nip: NIP_USER,
+            tanggal: item.tanggal,
+            kategori: "Masuk",
+            jenis: item.jenis || "Fleksibel Bekerja Secara Lokasi",
+            waktu: item.jamMasuk + ":00",
+            keterangan: "Import dari riwayat kehadiran aplikasi"
+          });
+        }
+        
+        if (item.jamPulang && item.jamPulang !== '-' && item.jamPulang !== '--:--') {
+          formattedResults.push({
+            nip: NIP_USER,
+            tanggal: item.tanggal,
+            kategori: "Pulang",
+            jenis: item.jenis || "Fleksibel Bekerja Secara Lokasi",
+            waktu: item.jamPulang + ":00",
+            keterangan: "Import dari riwayat kehadiran aplikasi"
+          });
+        }
+      });
+
+      return formattedResults;
     }
 
     function generateCSV(dataArray) {
@@ -170,7 +375,7 @@
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", "Import_Absensi_M_ZAEN_SYACHRULLAH_HASIL.csv");
+      link.setAttribute("download", "Import_Absensi_MULTI_HASIL.csv");
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
