@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     const base64Data = base64.split(',')[1];
 
     // Endpoint Gemini 1.5 Flash (Sangat optimal untuk Vision & Kecepatan)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     // Prompt khusus agar AI hanya mengembalikan JSON terstruktur
     const payload = {
