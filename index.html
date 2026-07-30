@@ -3,58 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Gen Absensi Offline (Tanpa API)</title>
-  
-  <!-- Tailwind CSS -->
+  <title>Auto Absen Kemensos Pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- SweetAlert2 untuk Notifikasi & Loading -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <!-- FontAwesome untuk Ikon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <!-- SheetJS untuk Manipulasi Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <!-- Tesseract.js untuk OCR Client-Side (Tanpa API) -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   
   <style>
-    body { 
-      background-color: #0f172a; 
-      color: white; 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    }
-    .btn-glossy {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-      transition: all 0.3s ease;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .btn-glossy:hover:not(:disabled) {
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 15px rgba(59, 130, 246, 0.6);
-      transform: translateY(-2px);
-    }
-    .btn-glossy:disabled {
-      background: #334155;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
+    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; }
+    .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+    .btn-glossy { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); transition: all 0.3s ease; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.3); }
+    .btn-glossy:hover:not(:disabled) { transform: translateY(-2px); }
+    .btn-glossy:disabled { background: #334155; cursor: not-allowed; opacity: 0.7; }
     .tab-content { display: none; animation: fadeIn 0.4s ease-in-out; }
     .tab-content.active { display: block; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .nav-item.active { color: #3b82f6; }
     .nav-item.active .nav-indicator { display: block; }
   </style>
@@ -63,51 +26,69 @@
 
   <div class="w-full max-w-lg mx-auto mt-6 px-4">
     
-    <!-- ================= TAB 1: EKSTRAK OFFLINE ================= -->
-    <div id="menu-ekstrak" class="tab-content active glass-panel rounded-2xl p-6 sm:p-8">
+    <!-- ================= TAB 1: PROSES ABSENSI ================= -->
+    <div id="menu-utama" class="tab-content active glass-panel rounded-2xl p-6">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-white">
-          Auto Absen Kemensos
-        </h2>
-        <p class="text-slate-400 text-sm mt-2">Sistem OCR Offline (Tanpa API Berbayar)</p>
+        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-white">Sinkronisasi Absensi</h2>
+        <p class="text-slate-400 text-sm mt-1">Isi Otomatis Sesuai Bulan & Template</p>
       </div>
 
-      <div class="w-full mb-4">
-        <label for="fileInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
-          <i class="fas fa-images text-4xl text-blue-400 mb-3"></i>
-          <p class="text-slate-300 font-medium">Klik untuk Pilih Gambar Absensi</p>
-          <p class="text-slate-500 text-xs mt-1">(Bisa pilih banyak gambar)</p>
+      <!-- Pemilihan Bulan & Tahun -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Bulan</label>
+          <select id="selectBulan" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
+            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7" selected>Juli</option><option value="8">Agustus</option><option value="9">September</option>
+            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Tahun</label>
+          <input type="number" id="selectTahun" value="2026" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
+        </div>
+      </div>
+
+      <!-- Upload Gambar Absen -->
+      <div class="w-full mb-4 mt-6">
+        <label for="fileInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
+          <i class="fas fa-images text-3xl text-blue-400 mb-2"></i>
+          <p class="text-slate-300 font-medium">Upload Gambar Absensi</p>
+          <p class="text-slate-500 text-xs mt-1">Pilih semua screenshot sekaligus</p>
         </label>
         <input type="file" id="fileInput" accept="image/*" multiple class="hidden" onchange="handleFiles()">
       </div>
 
-      <div id="fileListContainer" class="w-full mb-6 max-h-40 overflow-y-auto hidden">
-        <h3 class="text-sm text-slate-400 mb-2 font-semibold">File Terpilih:</h3>
+      <div id="fileListContainer" class="w-full mb-4 max-h-32 overflow-y-auto hidden">
         <ul id="fileList" class="space-y-2"></ul>
       </div>
 
-      <button id="processBtn" onclick="processAllFiles()" disabled class="btn-glossy w-full py-3 sm:py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm">
-        <i class="fas fa-magic mr-2"></i> Proses & Unduh Excel
+      <button id="processBtn" onclick="processData()" disabled class="btn-glossy w-full py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm mt-2">
+        <i class="fas fa-cogs mr-2"></i> Generate Template Manual
       </button>
     </div>
 
     <!-- ================= TAB 2: PENGATURAN ================= -->
-    <div id="menu-pengaturan" class="tab-content glass-panel rounded-2xl p-6 sm:p-8">
+    <div id="menu-pengaturan" class="tab-content glass-panel rounded-2xl p-6">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold text-white">Data SDM</h2>
-        <p class="text-slate-400 text-sm mt-2">Konfigurasi Data Pegawai</p>
+        <h2 class="text-2xl font-bold text-white">Pengaturan</h2>
       </div>
       <div class="space-y-4">
         <div>
           <label class="block text-sm text-slate-400 mb-1">Nama Lengkap</label>
-          <input type="text" id="settingNama" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
+          <input type="text" id="settingNama" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none">
         </div>
         <div>
           <label class="block text-sm text-slate-400 mb-1">NIP</label>
-          <input type="text" id="settingNIP" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
+          <input type="text" id="settingNIP" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Gemini API Key</label>
+          <input type="password" id="settingAPI" placeholder="AIzaSy..." class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
         </div>
         <button onclick="saveSettings()" class="btn-glossy w-full py-3 mt-4 rounded-xl font-bold text-white tracking-wide text-sm">
-          <i class="fas fa-save mr-2"></i> Simpan Data
+          Simpan Pengaturan
         </button>
       </div>
     </div>
@@ -117,14 +98,12 @@
   <!-- NAVIGASI BAWAH -->
   <nav class="fixed bottom-0 w-full glass-panel border-t border-slate-700 bg-[#0f172a]/90 z-50">
     <div class="max-w-lg mx-auto flex justify-around">
-      <button onclick="switchTab('menu-ekstrak', this)" class="nav-item active flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white transition-colors relative">
-        <i class="fas fa-camera-retro text-xl mb-1"></i>
-        <span class="text-[10px] font-semibold uppercase tracking-wider">Ekstrak Data</span>
+      <button onclick="switchTab('menu-utama', this)" class="nav-item active flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
+        <i class="fas fa-home text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">Utama</span>
         <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
       </button>
-      <button onclick="switchTab('menu-pengaturan', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white transition-colors relative">
-        <i class="fas fa-user-cog text-xl mb-1"></i>
-        <span class="text-[10px] font-semibold uppercase tracking-wider">Pengaturan</span>
+      <button onclick="switchTab('menu-pengaturan', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
+        <i class="fas fa-user-cog text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">Pengaturan</span>
         <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
       </button>
     </div>
@@ -133,14 +112,10 @@
   <script>
     let selectedFiles = [];
 
-    const Toast = Swal.mixin({
-      toast: true, position: 'top', showConfirmButton: false, timer: 3000,
-      background: '#1e293b', color: '#fff'
-    });
-
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById('settingNama').value = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
       document.getElementById('settingNIP').value = localStorage.getItem('SDM_NIP') || '199006212025211050';
+      document.getElementById('settingAPI').value = localStorage.getItem('GEMINI_API_KEY') || '';
     });
 
     function switchTab(tabId, element) {
@@ -153,7 +128,8 @@
     function saveSettings() {
       localStorage.setItem('SDM_NAMA', document.getElementById('settingNama').value);
       localStorage.setItem('SDM_NIP', document.getElementById('settingNIP').value);
-      Toast.fire({ icon: 'success', title: 'Tersimpan!' });
+      localStorage.setItem('GEMINI_API_KEY', document.getElementById('settingAPI').value);
+      Swal.fire({ icon: 'success', title: 'Tersimpan', toast: true, position: 'top', timer: 2000, showConfirmButton: false, background: '#1e293b', color: '#fff' });
     }
 
     function handleFiles() {
@@ -169,16 +145,16 @@
       list.innerHTML = "";
       selectedFiles.forEach((file, index) => {
         const li = document.createElement('li');
-        li.className = "bg-slate-800 rounded-lg p-3 flex justify-between items-center text-sm";
-        li.innerHTML = `<div class="text-slate-200"><i class="fas fa-image text-blue-400 mr-2"></i>${file.name}</div>
-                        <button onclick="removeFile(${index})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>`;
+        li.className = "bg-slate-800 rounded-lg p-2 flex justify-between items-center text-xs";
+        li.innerHTML = `<div class="text-slate-200 truncate w-3/4"><i class="fas fa-image text-blue-400 mr-2"></i>${file.name}</div>
+                        <button onclick="removeFile(${index})" class="text-red-400"><i class="fas fa-times"></i></button>`;
         list.appendChild(li);
       });
 
       if (selectedFiles.length > 0) {
         container.classList.remove('hidden');
         btn.disabled = false;
-        btn.innerText = `Ekstrak ${selectedFiles.length} Gambar`;
+        btn.innerText = `Ekstrak & Susun Template`;
       } else {
         container.classList.add('hidden');
         btn.disabled = true;
@@ -191,144 +167,137 @@
       handleFiles();
     }
 
-    async function processAllFiles() {
-      const btn = document.getElementById('processBtn');
-      btn.disabled = true;
-      
-      const namaPegawai = document.getElementById('settingNama').value;
-      const nipPegawai = document.getElementById('settingNIP').value;
+    // Fungsi Generate Array Tanggal dalam 1 Bulan Penuh
+    function getDatesInMonth(month, year) {
+      let dates = [];
+      let date = new Date(year, month - 1, 1);
+      while (date.getMonth() === month - 1) {
+        let d = String(date.getDate()).padStart(2, '0');
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let y = date.getFullYear();
+        dates.push(`${d}-${m}-${y}`);
+        date.setDate(date.getDate() + 1);
+      }
+      return dates;
+    }
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
+
+    async function processData() {
+      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!apiKey) return Swal.fire({ icon: 'error', title: 'API Key Kosong', text: 'Masukkan API Key di Pengaturan', background: '#0f172a', color: '#fff' });
+
+      const bln = parseInt(document.getElementById('selectBulan').value);
+      const thn = parseInt(document.getElementById('selectTahun').value);
+      const monthDates = getDatesInMonth(bln, thn); // Mengisi hari 1 sampai 30/31
 
       Swal.fire({
         title: 'Membaca Gambar...',
-        html: `Menggunakan OCR Offline.<br><b id="ocrProgress">0%</b><br><span class="text-sm text-slate-400">Proses ini memakan waktu tergantung spesifikasi HP/PC Anda.</span>`,
+        html: `Memproses gambar menggunakan AI.<br><span class="text-sm text-slate-400">Menyusun template absen untuk bulan terpilih.</span>`,
         allowOutsideClick: false, background: '#0f172a', color: '#fff',
         didOpen: () => { Swal.showLoading(); }
       });
 
-      let allData = [];
+      let extractedRecords = [];
 
       try {
         for (let i = 0; i < selectedFiles.length; i++) {
-          const file = selectedFiles[i];
-          const text = await extractTextWithTesseract(file);
-          const parsedRecords = parseAttendanceText(text);
-          allData = allData.concat(parsedRecords);
+          const base64Data = await toBase64(selectedFiles[i]);
+          const result = await extractFromGemini(base64Data, selectedFiles[i].type, apiKey);
+          extractedRecords = extractedRecords.concat(result);
         }
 
-        if (allData.length > 0) {
-          generateKemensosExcel(allData, namaPegawai, nipPegawai);
-          Swal.fire({
-            icon: 'success', title: 'Berhasil!',
-            text: 'Data berhasil diekstrak dan Excel telah diunduh.',
-            background: '#0f172a', color: '#fff'
+        // --- PROSES PENCOCOKAN (MERGING) ---
+        // Membuat data final berdasarkan jumlah hari dalam bulan
+        let finalData = [];
+        const namaPegawai = document.getElementById('settingNama').value;
+        const nipPegawai = document.getElementById('settingNIP').value;
+
+        monthDates.forEach((tgl, index) => {
+          // Cari apakah tanggal ini ada di gambar yang diekstrak AI
+          let found = extractedRecords.find(item => item.tanggal === tgl);
+          
+          finalData.push({
+            "NO": index + 1,
+            "NAMA": namaPegawai,
+            "NIP": nipPegawai,
+            "TANGGAL": tgl,
+            // Jika ada di gambar ambil jamnya, jika kosong/tidak ada, tulis "-"
+            "JAM MASUK": found && found.masuk ? found.masuk : "-",
+            "JAM PULANG": found && found.pulang ? found.pulang : "-",
+            "KETERANGAN": found && found.keterangan ? found.keterangan : (found ? "Hadir" : "-")
           });
-          selectedFiles = [];
-          handleFiles();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tidak ada data valid yang ditemukan.', background: '#0f172a', color: '#fff' });
-        }
+        });
+
+        generateFinalExcel(finalData);
+
+        Swal.fire({
+          icon: 'success', title: 'Selesai!',
+          text: 'Template Manual Absen Kemensos berhasil diunduh.',
+          background: '#0f172a', color: '#fff'
+        });
+        
+        selectedFiles = [];
+        handleFiles();
+
       } catch (error) {
         console.error(error);
-        Swal.fire({ icon: 'error', title: 'Error OCR', text: 'Gagal membaca gambar.', background: '#0f172a', color: '#fff' });
+        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan atau API Key tidak valid.', background: '#0f172a', color: '#fff' });
       }
-
-      btn.disabled = false;
     }
 
-    // Fungsi OCR murni menggunakan Tesseract.js
-    async function extractTextWithTesseract(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-          try {
-            const result = await Tesseract.recognize(reader.result, 'eng', {
-              logger: m => {
-                if(m.status === 'recognizing text' && document.getElementById('ocrProgress')){
-                  document.getElementById('ocrProgress').innerText = Math.round(m.progress * 100) + "%";
-                }
+    async function extractFromGemini(base64Data, mimeType, apiKey) {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{
+          parts: [
+            { text: `Ekstrak data kehadiran dari gambar.
+Tugas:
+1. Cari Tanggal (ubah format ke DD-MM-YYYY, misal 30/07/2026 jadi 30-07-2026).
+2. Cari Jam Masuk dan Jam Pulang. Jika strip/kosong, isi "-". Hanya ambil format jam (HH:MM).
+3. Kembalikan HANYA array JSON murni tanpa markdown.
+Format objek: {"tanggal": "DD-MM-YYYY", "masuk": "HH:MM", "pulang": "HH:MM", "keterangan": "Hadir"}` },
+            { inlineData: { mimeType: mimeType, data: base64Data } }
+          ]
+        }],
+        generationConfig: {
+          response_mime_type: "application/json",
+          response_schema: {
+            type: "ARRAY", items: {
+              type: "OBJECT", properties: {
+                tanggal: { type: "STRING" }, masuk: { type: "STRING" }, pulang: { type: "STRING" }, keterangan: { type: "STRING" }
               }
-            });
-            resolve(result.data.text);
-          } catch (e) { reject(e); }
-        };
-      });
-    }
-
-    // Fungsi Regex untuk membedah teks OCR menjadi data terstruktur
-    function parseAttendanceText(rawText) {
-      const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      let records = [];
-      let currentRecord = null;
-
-      // Regex pencarian
-      const dateRegex = /^(\d{2}\/\d{2}\/\d{4})/;
-      const timeRegex = /Masuk:\s*([\d:]+|\-)\s*Pulang:\s*([\d:]+|\-)/i;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 1. Cari Tanggal
-        const dateMatch = line.match(dateRegex);
-        if (dateMatch) {
-          if (currentRecord) records.push(currentRecord);
-          // Ubah format '/' menjadi '-' sesuai template (contoh 30/07/2026 -> 30-07-2026)
-          let formattedDate = dateMatch[1].replace(/\//g, '-');
-          currentRecord = { tanggal: formattedDate, masuk: '-', pulang: '-', keterangan: 'Hadir' };
-          continue;
-        }
-
-        // 2. Cari Jam Masuk & Pulang
-        const timeMatch = line.match(timeRegex);
-        if (timeMatch && currentRecord) {
-          // Hanya ambil 5 karakter pertama (contoh "07:23")
-          currentRecord.masuk = timeMatch[1] !== '-' ? timeMatch[1].substring(0, 5) : '-';
-          currentRecord.pulang = timeMatch[2] !== '-' ? timeMatch[2].substring(0, 5) : '-';
-          continue;
-        }
-
-        // 3. Cari Jenis Kehadiran (Opsional jika diperlukan)
-        if (currentRecord && (line.toLowerCase().includes('fleksibel') || line.toLowerCase().includes('kantor') || line.toLowerCase().includes('hadir'))) {
-            // Kita bisa menyesuaikan "keterangan" berdasarkan ini
-            if(line.toLowerCase().includes('hadir') && currentRecord.keterangan === 'Hadir'){
-                currentRecord.keterangan = "Hadir";
             }
+          }
         }
-      }
+      };
+
+      const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!response.ok) throw new Error('API Error');
+      const data = await response.json();
+      if (!data.candidates) return [];
       
-      if (currentRecord) records.push(currentRecord);
-      
-      // Filter duplikat atau data kosong
-      return records.filter(r => r.tanggal);
+      const jsonString = data.candidates[0].content.parts[0].text.trim();
+      return JSON.parse(jsonString);
     }
 
-    // Pembuatan Excel Format Kemensos Langsung
-    function generateKemensosExcel(dataArray, nama, nip) {
-      // Urutkan berdasarkan tanggal jika perlu, saat ini mengikuti urutan OCR
-      
-      // Format langsung ke standar Manual PPPK KEMSOS
-      let finalKemensosFormat = dataArray.map((item, index) => {
-        return {
-          "NO": index + 1,
-          "NAMA": nama,
-          "NIP": nip,
-          "TANGGAL": item.tanggal,
-          "JAM MASUK": item.masuk,
-          "JAM PULANG": item.pulang,
-          "KETERANGAN": item.keterangan
-        };
+    function generateFinalExcel(dataArray) {
+      // Membuat sheet persis seperti kolom Absen Manual PPPK KEMSOS RI
+      const worksheet = XLSX.utils.json_to_sheet(dataArray, { 
+        header: ["NO", "NAMA", "NIP", "TANGGAL", "JAM MASUK", "JAM PULANG", "KETERANGAN"]
       });
-
-      const worksheet = XLSX.utils.json_to_sheet(finalKemensosFormat, { header: ["NO", "NAMA", "NIP", "TANGGAL", "JAM MASUK", "JAM PULANG", "KETERANGAN"]});
       const workbook = XLSX.utils.book_new();
       
-      // Mengatur lebar kolom agar rapi
-      worksheet['!cols'] = [
-        { wch: 5 }, { wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }
-      ];
+      // Lebar kolom agar rapi saat dibuka
+      worksheet['!cols'] = [ { wch: 5 }, { wch: 30 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 } ];
 
       XLSX.utils.book_append_sheet(workbook, worksheet, "Data Absen");
-      XLSX.writeFile(workbook, "Absen Manual PPPK KEMSOS RI.xlsx");
+      XLSX.writeFile(workbook, "Absen_Manual_PPPK_KEMSOS_RI.xlsx");
     }
   </script>
 </body>
