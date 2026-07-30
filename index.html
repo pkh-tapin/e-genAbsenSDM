@@ -19,7 +19,7 @@
   
   <style>
     body { 
-      background-color: #0f172a; /* Biru Malam / Midnight Blue */
+      background-color: #0f172a; 
       color: white; 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
       min-height: 100vh;
@@ -110,7 +110,7 @@
       </div>
 
       <button id="processBtn" onclick="processAllFiles()" disabled class="btn-glossy w-full py-3 sm:py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm">
-        <i class="fas fa-magic mr-2"></i> Ekstrak Jadi Excel
+        <i class="fas fa-magic mr-2"></i> Ekstrak Jadi Excel (Template)
       </button>
     </div>
 
@@ -228,6 +228,7 @@
 
     // ================= PENGATURAN =================
     function loadSettings() {
+      // Default to known user data if not set
       document.getElementById('settingNama').value = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
       document.getElementById('settingNIP').value = localStorage.getItem('SDM_NIP') || '199006212025211050';
       document.getElementById('settingAPI').value = localStorage.getItem('GEMINI_API_KEY') || '';
@@ -272,7 +273,7 @@
       } else {
         container.classList.add('hidden');
         btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak Jadi Excel`;
+        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak Jadi Excel (Template)`;
       }
       input.value = ""; 
     }
@@ -306,7 +307,6 @@
       let allExtractedData = [];
       let successCount = 0, failCount = 0;
       const nipUser = localStorage.getItem('SDM_NIP') || '199006212025211050';
-      const namaUser = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
 
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
@@ -314,21 +314,30 @@
 
         try {
           const base64Data = await toBase64(file);
-          const resultData = await extractDataFromGemini(base64Data, file.type, apiKey, nipUser, namaUser);
-          if (resultData.length > 0) {
+          const resultData = await extractDataFromGemini(base64Data, file.type, apiKey, nipUser);
+          if (resultData && resultData.length > 0) {
             allExtractedData = allExtractedData.concat(resultData);
             successCount++;
-          } else { failCount++; }
-        } catch (error) { failCount++; }
+          } else { 
+            console.warn("Data kosong untuk file:", file.name);
+            failCount++; 
+          }
+        } catch (error) { 
+          console.error("Error pada file", file.name, error);
+          failCount++; 
+        }
       }
 
       if (allExtractedData.length > 0) {
         Swal.fire({
           icon: 'success', title: 'Selesai!',
-          html: `Berhasil: <b>${successCount}</b> gambar.<br>Gagal: ${failCount} gambar.<br>Total Baris: <b>${allExtractedData.length}</b>.`,
+          html: `Berhasil mengekstrak <b>${successCount}</b> gambar.<br>Gagal: ${failCount} gambar.<br>Total Baris Data: <b>${allExtractedData.length}</b>.`,
           background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
         });
-        generateExcel(allExtractedData, "Hasil_Ekstrak_Absensi.xlsx");
+        
+        // Memastikan nama file hasil sesuai template yang diinginkan
+        generateExcel(allExtractedData, "Hasil_Ekstrak_Sesuai_Template.xlsx");
+        
         selectedFiles = [];
         handleFiles();
       } else {
@@ -337,43 +346,101 @@
       document.getElementById('processBtn').disabled = false;
     }
 
-    async function extractDataFromGemini(base64Data, mimeType, apiKey, nipUser, namaUser) {
+    async function extractDataFromGemini(base64Data, mimeType, apiKey, nipUser) {
+      // PERBAIKAN PENTING: URL endpoint dijamin benar (v1beta/models/gemini-1.5-flash:generateContent)
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      
       const payload = {
         contents: [{
           parts: [
-            { text: "Ekstrak riwayat kehadiran dari gambar ini. Cari tanggal, jam masuk, jam pulang, dan jenis kehadiran (seperti 'Fleksibel Bekerja Secara Lokasi' atau 'Bekerja di Kantor'). KEMBALIKAN HANYA JSON ARRAY MURNI TANPA MARKDOWN. Format wajib: [{\"tanggal\": \"DD-MM-YYYY\", \"jamMasuk\": \"HH:MM\", \"jamPulang\": \"HH:MM\", \"jenis\": \"Fleksibel Bekerja Secara Lokasi\"}]." },
+            { text: `Ekstrak riwayat kehadiran dari gambar ini.
+Tugas Anda:
+1. Ambil tanggal, jam masuk, jam pulang, dan jenis kehadiran.
+2. Format tanggal bebas (disarankan DD-MM-YYYY).
+3. Jika jam masuk atau jam pulang tidak ada/kosong/berisi strip (-), isi dengan nilai null.
+4. Nilai jenis kehadiran default-nya adalah "Fleksibel Bekerja Secara Lokasi" atau "Bekerja di Kantor".
+KEMBALIKAN HANYA JSON ARRAY MURNI.` },
             { inlineData: { mimeType: mimeType, data: base64Data } }
           ]
-        }]
+        }],
+        // PERBAIKAN: Menggunakan struktur Schema yang benar agar tidak error 404
+        generationConfig: {
+          response_mime_type: "application/json",
+          response_schema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                tanggal: { type: "STRING" },
+                jamMasuk: { type: "STRING" },
+                jamPulang: { type: "STRING" },
+                jenis: { type: "STRING" }
+              }
+            }
+          }
+        }
       };
 
-      const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!response.ok) throw new Error('API Request Failed');
+      const response = await fetch(apiUrl, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(payload) 
+      });
+      
+      if (!response.ok) {
+        const errJson = await response.json();
+        console.error("API Error Response:", errJson);
+        throw new Error('API Request Failed: ' + response.status);
+      }
 
       const data = await response.json();
       if (!data.candidates || data.candidates.length === 0) return [];
 
-      let jsonString = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+      let jsonString = data.candidates[0].content.parts[0].text.trim();
       const parsedData = JSON.parse(jsonString);
+      
       let formattedResults = [];
 
+      // Memastikan urutan kolom sesuai template Excel: ['NIP', 'TANGGAL', 'KATEGORI', 'JENIS', 'WAKTU', 'KETERANGAN']
       parsedData.forEach(item => {
-        if (item.jamMasuk && item.jamMasuk !== '-' && item.jamMasuk !== '--:--') {
-          formattedResults.push({ "NAMA": namaUser, "NIP": nipUser, "TANGGAL": item.tanggal, "KATEGORI": "Masuk", "JENIS": item.jenis || "Fleksibel", "WAKTU": item.jamMasuk + ":00" });
+        let tgl = item.tanggal ? item.tanggal.replace(/\//g, '-') : '';
+        
+        // Cek Absen Masuk
+        if (item.jamMasuk && item.jamMasuk !== '-' && item.jamMasuk !== '--:--' && item.jamMasuk !== 'null') {
+          let jamM = item.jamMasuk.length === 5 ? item.jamMasuk : item.jamMasuk.substring(0,5);
+          formattedResults.push({ 
+            "NIP": nipUser, 
+            "TANGGAL": tgl, 
+            "KATEGORI": "Masuk", 
+            "JENIS": item.jenis || "Fleksibel Bekerja Secara Lokasi", 
+            "WAKTU": jamM,
+            "KETERANGAN": "Import AI"
+          });
         }
-        if (item.jamPulang && item.jamPulang !== '-' && item.jamPulang !== '--:--') {
-          formattedResults.push({ "NAMA": namaUser, "NIP": nipUser, "TANGGAL": item.tanggal, "KATEGORI": "Pulang", "JENIS": item.jenis || "Fleksibel", "WAKTU": item.jamPulang + ":00" });
+        
+        // Cek Absen Pulang
+        if (item.jamPulang && item.jamPulang !== '-' && item.jamPulang !== '--:--' && item.jamPulang !== 'null') {
+          let jamP = item.jamPulang.length === 5 ? item.jamPulang : item.jamPulang.substring(0,5);
+          formattedResults.push({ 
+            "NIP": nipUser, 
+            "TANGGAL": tgl, 
+            "KATEGORI": "Pulang", 
+            "JENIS": item.jenis || "Fleksibel Bekerja Secara Lokasi", 
+            "WAKTU": jamP,
+            "KETERANGAN": "Import AI"
+          });
         }
       });
+      
       return formattedResults;
     }
 
-    // Fungsi Global Export Excel dgn SheetJS
+    // Fungsi Export Excel yg persis dengan Template
     function generateExcel(dataArray, filename) {
-      const worksheet = XLSX.utils.json_to_sheet(dataArray);
+      // Membuat format sesuai urutan kolom (Header ketat)
+      const worksheet = XLSX.utils.json_to_sheet(dataArray, { header: ["NIP", "TANGGAL", "KATEGORI", "JENIS", "WAKTU", "KETERANGAN"] });
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Template Import Absensi"); // Nama sheet sesuai file contoh
       XLSX.writeFile(workbook, filename);
     }
 
@@ -392,22 +459,26 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        // Convert ke JSON
-        uploadedExcelData = XLSX.utils.sheet_to_json(worksheet);
-        
-        if(uploadedExcelData.length > 0) {
-          statusText.innerText = `Berhasil memuat ${uploadedExcelData.length} baris data.`;
-          statusText.className = "text-center text-sm text-green-400 mb-4 block";
-          convertBtn.disabled = false;
-        } else {
-          statusText.innerText = "Excel kosong atau format tidak sesuai.";
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          uploadedExcelData = XLSX.utils.sheet_to_json(worksheet);
+          
+          if(uploadedExcelData.length > 0) {
+            statusText.innerText = `Berhasil memuat ${uploadedExcelData.length} baris data.`;
+            statusText.className = "text-center text-sm text-green-400 mb-4 block";
+            convertBtn.disabled = false;
+          } else {
+            throw new Error("Sheet kosong");
+          }
+        } catch (err) {
+          statusText.innerText = "Error membaca Excel atau format tidak sesuai.";
           statusText.className = "text-center text-sm text-red-400 mb-4 block";
           convertBtn.disabled = true;
+          console.error(err);
         }
       };
       reader.readAsArrayBuffer(file);
@@ -416,12 +487,11 @@
     function processKemensos() {
       if (uploadedExcelData.length === 0) return;
 
-      // Grouping data by Tanggal
       let groupedData = {};
       
       uploadedExcelData.forEach(row => {
         let tgl = row["TANGGAL"];
-        if (!tgl) return; // Skip baris tanpa tanggal
+        if (!tgl) return; // Lewati jika tidak ada tanggal
 
         if (!groupedData[tgl]) {
           groupedData[tgl] = {
@@ -435,22 +505,23 @@
           };
         }
 
-        let kategori = (row["KATEGORI"] || "").toUpperCase();
+        let kategori = (row["KATEGORI"] || "").toString().toUpperCase();
         let waktu = row["WAKTU"] || "";
         
         if (kategori === "MASUK") groupedData[tgl]["JAM MASUK"] = waktu;
         if (kategori === "PULANG") groupedData[tgl]["JAM PULANG"] = waktu;
       });
 
-      // Jadikan Array dan Beri Nomor Urut
       let finalKemensosFormat = Object.values(groupedData).map((item, index) => {
         item["NO"] = index + 1;
         return item;
       });
 
       if (finalKemensosFormat.length > 0) {
-        // Render File Absen Manual PPPK KEMSOS RI.xlsx
-        generateExcel(finalKemensosFormat, "Absen Manual PPPK KEMSOS RI.xlsx");
+        const worksheet = XLSX.utils.json_to_sheet(finalKemensosFormat, { header: ["NO", "NAMA", "NIP", "TANGGAL", "JAM MASUK", "JAM PULANG", "KETERANGAN"]});
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Data Absen");
+        XLSX.writeFile(workbook, "Absen Manual PPPK KEMSOS RI.xlsx");
         
         Swal.fire({
           icon: 'success',
@@ -459,7 +530,6 @@
           background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
         });
         
-        // Reset state upload
         document.getElementById('excelInput').value = "";
         document.getElementById('excelStatus').classList.add('hidden');
         document.getElementById('convertBtn').disabled = true;
