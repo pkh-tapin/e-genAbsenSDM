@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Absen Kemensos Pro</title>
+  <title>Auto Absen Kemensos Pro V2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Library SheetJS untuk baca & tulis Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <style>
@@ -15,6 +16,8 @@
     .btn-glossy { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); transition: all 0.3s ease; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.3); }
     .btn-glossy:hover:not(:disabled) { transform: translateY(-2px); }
     .btn-glossy:disabled { background: #334155; cursor: not-allowed; opacity: 0.7; }
+    .btn-success { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); transition: all 0.3s ease; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.3); }
+    .btn-success:hover:not(:disabled) { transform: translateY(-2px); }
     .tab-content { display: none; animation: fadeIn 0.4s ease-in-out; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -26,18 +29,43 @@
 
   <div class="w-full max-w-lg mx-auto mt-6 px-4">
     
-    <!-- ================= TAB 1: PROSES ABSENSI ================= -->
-    <div id="menu-utama" class="tab-content active glass-panel rounded-2xl p-6">
+    <!-- ================= TAB 1: MENU EKSTRAK OCR GAMBAR ================= -->
+    <div id="menu-ocr" class="tab-content active glass-panel rounded-2xl p-6">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-white">Sinkronisasi Absensi</h2>
-        <p class="text-slate-400 text-sm mt-1">Isi Otomatis Sesuai Bulan & Template</p>
+        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-white">Tahap 1: Ekstrak Gambar</h2>
+        <p class="text-slate-400 text-sm mt-1">Ubah Screenshot jadi Data Excel (Template)</p>
+      </div>
+
+      <div class="w-full mb-4 mt-4">
+        <label for="imgInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
+          <i class="fas fa-images text-3xl text-blue-400 mb-2"></i>
+          <p class="text-slate-300 font-medium">Upload Screenshot Absen</p>
+          <p class="text-slate-500 text-xs mt-1">Bisa pilih banyak gambar sekaligus</p>
+        </label>
+        <input type="file" id="imgInput" accept="image/*" multiple class="hidden" onchange="handleImages()">
+      </div>
+
+      <div id="imgListContainer" class="w-full mb-4 max-h-32 overflow-y-auto hidden">
+        <ul id="imgList" class="space-y-2"></ul>
+      </div>
+
+      <button id="btnProcessOCR" onclick="processOCR()" disabled class="btn-glossy w-full py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm mt-2">
+        <i class="fas fa-file-export mr-2"></i> Ekstrak & Download Data Excel
+      </button>
+    </div>
+
+    <!-- ================= TAB 2: MENU UPLOAD EXCEL & GENERATE MANUAL ================= -->
+    <div id="menu-generate" class="tab-content glass-panel rounded-2xl p-6">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-white">Tahap 2: Absen Manual</h2>
+        <p class="text-slate-400 text-sm mt-1">Upload Data Excel -> Jadi Absensi Sebulan Penuh</p>
       </div>
 
       <!-- Pemilihan Bulan & Tahun -->
       <div class="grid grid-cols-2 gap-4 mb-4">
         <div>
           <label class="block text-sm text-slate-400 mb-1">Bulan</label>
-          <select id="selectBulan" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
+          <select id="selectBulan" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-green-400">
             <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
             <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
             <option value="7" selected>Juli</option><option value="8">Agustus</option><option value="9">September</option>
@@ -46,33 +74,28 @@
         </div>
         <div>
           <label class="block text-sm text-slate-400 mb-1">Tahun</label>
-          <input type="number" id="selectTahun" value="2026" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
+          <input type="number" id="selectTahun" value="2026" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-green-400">
         </div>
       </div>
 
-      <!-- Upload Gambar Absen -->
-      <div class="w-full mb-4 mt-6">
-        <label for="fileInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
-          <i class="fas fa-images text-3xl text-blue-400 mb-2"></i>
-          <p class="text-slate-300 font-medium">Upload Gambar Absensi</p>
-          <p class="text-slate-500 text-xs mt-1">Pilih semua screenshot sekaligus</p>
+      <!-- Upload Excel Data Mentah -->
+      <div class="w-full mb-4 mt-4">
+        <label for="excelInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 hover:bg-slate-800 transition-all">
+          <i class="fas fa-file-excel text-3xl text-green-400 mb-2"></i>
+          <p class="text-slate-300 font-medium" id="excelLabel">Upload File Excel (Hasil Tahap 1)</p>
         </label>
-        <input type="file" id="fileInput" accept="image/*" multiple class="hidden" onchange="handleFiles()">
+        <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcel()">
       </div>
 
-      <div id="fileListContainer" class="w-full mb-4 max-h-32 overflow-y-auto hidden">
-        <ul id="fileList" class="space-y-2"></ul>
-      </div>
-
-      <button id="processBtn" onclick="processData()" disabled class="btn-glossy w-full py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm mt-2">
-        <i class="fas fa-cogs mr-2"></i> Generate Template Manual
+      <button id="btnProcessManual" onclick="processGenerateManual()" disabled class="btn-success text-white w-full py-4 rounded-xl font-bold uppercase tracking-wide text-sm mt-2">
+        <i class="fas fa-calendar-check mr-2"></i> Generate Absensi Manual
       </button>
     </div>
 
-    <!-- ================= TAB 2: PENGATURAN ================= -->
+    <!-- ================= TAB 3: PENGATURAN ================= -->
     <div id="menu-pengaturan" class="tab-content glass-panel rounded-2xl p-6">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold text-white">Pengaturan</h2>
+        <h2 class="text-2xl font-bold text-white">Pengaturan Identitas</h2>
       </div>
       <div class="space-y-4">
         <div>
@@ -97,10 +120,14 @@
 
   <!-- NAVIGASI BAWAH -->
   <nav class="fixed bottom-0 w-full glass-panel border-t border-slate-700 bg-[#0f172a]/90 z-50">
-    <div class="max-w-lg mx-auto flex justify-around">
-      <button onclick="switchTab('menu-utama', this)" class="nav-item active flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
-        <i class="fas fa-home text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">Utama</span>
+    <div class="max-w-lg mx-auto flex justify-between px-2">
+      <button onclick="switchTab('menu-ocr', this)" class="nav-item active flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
+        <i class="fas fa-camera text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">1. Ekstrak Gambar</span>
         <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
+      </button>
+      <button onclick="switchTab('menu-generate', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
+        <i class="fas fa-file-excel text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">2. Buat Manual</span>
+        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-green-500 rounded-b-md"></div>
       </button>
       <button onclick="switchTab('menu-pengaturan', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
         <i class="fas fa-user-cog text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">Pengaturan</span>
@@ -110,7 +137,8 @@
   </nav>
 
   <script>
-    let selectedFiles = [];
+    let selectedImages = [];
+    let uploadedExcelData = [];
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById('settingNama').value = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
@@ -132,29 +160,29 @@
       Swal.fire({ icon: 'success', title: 'Tersimpan', toast: true, position: 'top', timer: 2000, showConfirmButton: false, background: '#1e293b', color: '#fff' });
     }
 
-    function handleFiles() {
-      const input = document.getElementById('fileInput');
-      const container = document.getElementById('fileListContainer');
-      const list = document.getElementById('fileList');
-      const btn = document.getElementById('processBtn');
+    // ================= TAHAP 1: HANDLE & EKSTRAK GAMBAR =================
+    function handleImages() {
+      const input = document.getElementById('imgInput');
+      const container = document.getElementById('imgListContainer');
+      const list = document.getElementById('imgList');
+      const btn = document.getElementById('btnProcessOCR');
 
       Array.from(input.files).forEach(file => {
-        if (!selectedFiles.some(f => f.name === file.name)) selectedFiles.push(file);
+        if (!selectedImages.some(f => f.name === file.name)) selectedImages.push(file);
       });
       
       list.innerHTML = "";
-      selectedFiles.forEach((file, index) => {
+      selectedImages.forEach((file, index) => {
         const li = document.createElement('li');
         li.className = "bg-slate-800 rounded-lg p-2 flex justify-between items-center text-xs";
         li.innerHTML = `<div class="text-slate-200 truncate w-3/4"><i class="fas fa-image text-blue-400 mr-2"></i>${file.name}</div>
-                        <button onclick="removeFile(${index})" class="text-red-400"><i class="fas fa-times"></i></button>`;
+                        <button onclick="removeImage(${index})" class="text-red-400"><i class="fas fa-times"></i></button>`;
         list.appendChild(li);
       });
 
-      if (selectedFiles.length > 0) {
+      if (selectedImages.length > 0) {
         container.classList.remove('hidden');
         btn.disabled = false;
-        btn.innerText = `Ekstrak & Susun Template`;
       } else {
         container.classList.add('hidden');
         btn.disabled = true;
@@ -162,23 +190,9 @@
       input.value = ""; 
     }
 
-    function removeFile(index) {
-      selectedFiles.splice(index, 1);
-      handleFiles();
-    }
-
-    // Fungsi Generate Array Tanggal dalam 1 Bulan Penuh
-    function getDatesInMonth(month, year) {
-      let dates = [];
-      let date = new Date(year, month - 1, 1);
-      while (date.getMonth() === month - 1) {
-        let d = String(date.getDate()).padStart(2, '0');
-        let m = String(date.getMonth() + 1).padStart(2, '0');
-        let y = date.getFullYear();
-        dates.push(`${d}-${m}-${y}`);
-        date.setDate(date.getDate() + 1);
-      }
-      return dates;
+    function removeImage(index) {
+      selectedImages.splice(index, 1);
+      handleImages();
     }
 
     const toBase64 = file => new Promise((resolve, reject) => {
@@ -188,17 +202,13 @@
       reader.onerror = error => reject(error);
     });
 
-    async function processData() {
+    async function processOCR() {
       const apiKey = localStorage.getItem('GEMINI_API_KEY');
-      if (!apiKey) return Swal.fire({ icon: 'error', title: 'API Key Kosong', text: 'Masukkan API Key di Pengaturan', background: '#0f172a', color: '#fff' });
-
-      const bln = parseInt(document.getElementById('selectBulan').value);
-      const thn = parseInt(document.getElementById('selectTahun').value);
-      const monthDates = getDatesInMonth(bln, thn); // Mengisi hari 1 sampai 30/31
+      if (!apiKey) return Swal.fire({ icon: 'error', title: 'API Key Kosong', text: 'Masukkan API Key di Menu Pengaturan', background: '#0f172a', color: '#fff' });
 
       Swal.fire({
-        title: 'Membaca Gambar...',
-        html: `Memproses gambar menggunakan AI.<br><span class="text-sm text-slate-400">Menyusun template absen untuk bulan terpilih.</span>`,
+        title: 'Mengekstrak Data...',
+        html: `Memproses gambar menggunakan AI.<br><span class="text-sm text-slate-400">Harap tunggu, ini membutuhkan waktu.</span>`,
         allowOutsideClick: false, background: '#0f172a', color: '#fff',
         didOpen: () => { Swal.showLoading(); }
       });
@@ -206,48 +216,33 @@
       let extractedRecords = [];
 
       try {
-        for (let i = 0; i < selectedFiles.length; i++) {
-          const base64Data = await toBase64(selectedFiles[i]);
-          const result = await extractFromGemini(base64Data, selectedFiles[i].type, apiKey);
+        for (let i = 0; i < selectedImages.length; i++) {
+          const base64Data = await toBase64(selectedImages[i]);
+          const result = await extractFromGemini(base64Data, selectedImages[i].type, apiKey);
           extractedRecords = extractedRecords.concat(result);
         }
 
-        // --- PROSES PENCOCOKAN (MERGING) ---
-        // Membuat data final berdasarkan jumlah hari dalam bulan
-        let finalData = [];
-        const namaPegawai = document.getElementById('settingNama').value;
-        const nipPegawai = document.getElementById('settingNIP').value;
-
-        monthDates.forEach((tgl, index) => {
-          // Cari apakah tanggal ini ada di gambar yang diekstrak AI
-          let found = extractedRecords.find(item => item.tanggal === tgl);
-          
-          finalData.push({
-            "NO": index + 1,
-            "NAMA": namaPegawai,
-            "NIP": nipPegawai,
-            "TANGGAL": tgl,
-            // Jika ada di gambar ambil jamnya, jika kosong/tidak ada, tulis "-"
-            "JAM MASUK": found && found.masuk ? found.masuk : "-",
-            "JAM PULANG": found && found.pulang ? found.pulang : "-",
-            "KETERANGAN": found && found.keterangan ? found.keterangan : (found ? "Hadir" : "-")
-          });
-        });
-
-        generateFinalExcel(finalData);
+        // Export data mentah hasil AI ke Excel
+        const worksheet = XLSX.utils.json_to_sheet(extractedRecords, { header: ["tanggal", "masuk", "pulang", "keterangan"] });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Data Mentah");
+        XLSX.writeFile(workbook, "Data_Ekstrak_Gambar.xlsx");
 
         Swal.fire({
-          icon: 'success', title: 'Selesai!',
-          text: 'Template Manual Absen Kemensos berhasil diunduh.',
+          icon: 'success', title: 'Tahap 1 Selesai!',
+          text: 'File Excel berisi Data Mentah berhasil didownload. Lanjutkan ke Tahap 2.',
           background: '#0f172a', color: '#fff'
+        }).then(() => {
+          // Arahkan ke tab 2 otomatis
+          switchTab('menu-generate', document.querySelectorAll('.nav-item')[1]);
         });
         
-        selectedFiles = [];
-        handleFiles();
+        selectedImages = [];
+        handleImages();
 
       } catch (error) {
         console.error(error);
-        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Terjadi kesalahan atau API Key tidak valid.', background: '#0f172a', color: '#fff' });
+        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengekstrak, pastikan API Key benar dan koneksi internet stabil.', background: '#0f172a', color: '#fff' });
       }
     }
 
@@ -256,12 +251,12 @@
       const payload = {
         contents: [{
           parts: [
-            { text: `Ekstrak data kehadiran dari gambar.
-Tugas:
-1. Cari Tanggal (ubah format ke DD-MM-YYYY, misal 30/07/2026 jadi 30-07-2026).
-2. Cari Jam Masuk dan Jam Pulang. Jika strip/kosong, isi "-". Hanya ambil format jam (HH:MM).
-3. Kembalikan HANYA array JSON murni tanpa markdown.
-Format objek: {"tanggal": "DD-MM-YYYY", "masuk": "HH:MM", "pulang": "HH:MM", "keterangan": "Hadir"}` },
+            { text: `Ekstrak riwayat kehadiran dari gambar.
+Pastikan:
+1. Tanggal format DD-MM-YYYY (contoh: 30/07/2026 jadi 30-07-2026).
+2. Jam Masuk dan Jam Pulang format HH:MM. Jika tidak ada isi "-".
+3. Keterangan isi "Hadir".
+Kembalikan HANYA JSON array: {"tanggal": "DD-MM-YYYY", "masuk": "HH:MM", "pulang": "HH:MM", "keterangan": "Hadir"}` },
             { inlineData: { mimeType: mimeType, data: base64Data } }
           ]
         }],
@@ -286,18 +281,107 @@ Format objek: {"tanggal": "DD-MM-YYYY", "masuk": "HH:MM", "pulang": "HH:MM", "ke
       return JSON.parse(jsonString);
     }
 
-    function generateFinalExcel(dataArray) {
-      // Membuat sheet persis seperti kolom Absen Manual PPPK KEMSOS RI
-      const worksheet = XLSX.utils.json_to_sheet(dataArray, { 
-        header: ["NO", "NAMA", "NIP", "TANGGAL", "JAM MASUK", "JAM PULANG", "KETERANGAN"]
-      });
-      const workbook = XLSX.utils.book_new();
-      
-      // Lebar kolom agar rapi saat dibuka
-      worksheet['!cols'] = [ { wch: 5 }, { wch: 30 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 } ];
+    // ================= TAHAP 2: BACA EXCEL & GENERATE MANUAL KEMENSOS =================
+    function handleExcel() {
+      const file = document.getElementById('excelInput').files[0];
+      if (!file) return;
 
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Absen");
-      XLSX.writeFile(workbook, "Absen_Manual_PPPK_KEMSOS_RI.xlsx");
+      document.getElementById('excelLabel').innerText = file.name;
+      document.getElementById('excelLabel').classList.add('text-green-400');
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert sheet to JSON
+        uploadedExcelData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Enable Generate Button
+        document.getElementById('btnProcessManual').disabled = false;
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Fungsi Generate Hari 1 sampai 30/31
+    function getDatesInMonth(month, year) {
+      let dates = [];
+      let date = new Date(year, month - 1, 1);
+      while (date.getMonth() === month - 1) {
+        let d = String(date.getDate()).padStart(2, '0');
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let y = date.getFullYear();
+        dates.push(`${d}-${m}-${y}`);
+        date.setDate(date.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function processGenerateManual() {
+      if (uploadedExcelData.length === 0) {
+        return Swal.fire({ icon: 'warning', title: 'Data Kosong', text: 'Mohon upload file Excel terlebih dahulu.', background: '#0f172a', color: '#fff' });
+      }
+
+      const bln = parseInt(document.getElementById('selectBulan').value);
+      const thn = parseInt(document.getElementById('selectTahun').value);
+      const namaPegawai = document.getElementById('settingNama').value;
+      const nipPegawai = document.getElementById('settingNIP').value;
+
+      Swal.fire({ title: 'Menyusun Absensi Manual...', allowOutsideClick: false, background: '#0f172a', color: '#fff', didOpen: () => { Swal.showLoading(); } });
+
+      // 1. Buat Kalender 1 Bulan Penuh
+      const monthDates = getDatesInMonth(bln, thn);
+      let finalDataKemensos = [];
+
+      // 2. Cocokkan Kalender dengan Data Excel yang Diupload
+      monthDates.forEach((tgl, index) => {
+        // Cari di data Excel yang diupload (pastikan nama kolom sesuai output json AI, huruf kecil/besar diatasi)
+        let found = uploadedExcelData.find(item => {
+          let itemTgl = item.tanggal || item.TANGGAL || item.Tanggal;
+          return itemTgl === tgl;
+        });
+
+        let jamMasuk = "-";
+        let jamPulang = "-";
+        let keterangan = "-";
+
+        if (found) {
+          jamMasuk = found.masuk || found.MASUK || found.Masuk || "-";
+          jamPulang = found.pulang || found.PULANG || found.Pulang || "-";
+          keterangan = found.keterangan || found.KETERANGAN || found.Keterangan || "Hadir";
+        }
+
+        finalDataKemensos.push({
+          "NO": index + 1,
+          "NAMA": namaPegawai,
+          "NIP": nipPegawai,
+          "TANGGAL": tgl,
+          "JAM MASUK": jamMasuk,
+          "JAM PULANG": jamPulang,
+          "KETERANGAN": keterangan
+        });
+      });
+
+      // 3. Export ke Excel Final
+      setTimeout(() => {
+        const worksheet = XLSX.utils.json_to_sheet(finalDataKemensos, { 
+          header: ["NO", "NAMA", "NIP", "TANGGAL", "JAM MASUK", "JAM PULANG", "KETERANGAN"]
+        });
+        const workbook = XLSX.utils.book_new();
+        worksheet['!cols'] = [ { wch: 5 }, { wch: 30 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 } ];
+
+        let namaBulan = document.getElementById('selectBulan').options[document.getElementById('selectBulan').selectedIndex].text;
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Absen Manual");
+        XLSX.writeFile(workbook, `Absen_Manual_Kemensos_${namaBulan}_${thn}.xlsx`);
+
+        Swal.fire({
+          icon: 'success', title: 'Berhasil!',
+          text: 'File Absensi Manual Full Sebulan berhasil dibuat berdasarkan data Excel Anda.',
+          background: '#0f172a', color: '#fff'
+        });
+      }, 1000);
     }
   </script>
 </body>
