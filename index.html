@@ -8,15 +8,18 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- SweetAlert2 untuk Notifikasi & Loading Keren -->
+  <!-- SweetAlert2 untuk Notifikasi & Loading -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <!-- FontAwesome untuk Ikon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- SheetJS untuk Manipulasi Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <style>
     body { 
-      background-color: #0f172a; 
+      background-color: #0f172a; /* Biru Malam / Midnight Blue */
       color: white; 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
       min-height: 100vh;
@@ -37,9 +40,10 @@
     .btn-glossy {
       background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
       transition: all 0.3s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 6px rgba(0,0,0,0.3);
     }
     .btn-glossy:hover:not(:disabled) {
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 15px rgba(59, 130, 246, 0.6);
       transform: translateY(-2px);
     }
     .btn-glossy:disabled {
@@ -50,124 +54,216 @@
       box-shadow: none;
     }
     
-    /* Custom Scrollbar untuk list file */
+    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+
+    /* Animasi Tab */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Bottom Nav Aktif */
+    .nav-item.active {
+      color: #3b82f6;
+    }
+    .nav-item.active .nav-indicator {
+      display: block;
+    }
   </style>
 </head>
-<body class="p-4 items-center justify-center flex">
+<body class="pb-24"> <!-- Padding bawah untuk Navigasi -->
 
-  <div class="glass-panel w-full max-w-lg rounded-2xl p-6 sm:p-8 flex flex-col relative">
+  <!-- KONTEN UTAMA -->
+  <div class="w-full max-w-lg mx-auto mt-6 px-4">
     
-    <!-- Tombol Settings (Pojok Kanan Atas) -->
-    <button onclick="openSettings()" class="absolute top-6 right-6 text-slate-400 hover:text-blue-400 transition-colors" title="Pengaturan API Key">
-      <i class="fas fa-cog text-xl"></i>
-    </button>
+    <!-- ================= TAB 1: EKSTRAK AI ================= -->
+    <div id="menu-ekstrak" class="tab-content active glass-panel rounded-2xl p-6 sm:p-8">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-white">
+          E-Gen Absensi AI
+        </h2>
+        <p class="text-slate-400 text-sm mt-2">Upload <b class="text-white">Banyak Gambar</b> Sekaligus</p>
+      </div>
 
-    <!-- Header -->
-    <div class="text-center mb-6">
-      <h2 class="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-        E-Gen Absensi AI
-      </h2>
-      <p class="text-slate-400 text-sm mt-2">Upload <b class="text-white">Banyak Gambar</b> Sekaligus</p>
+      <div class="w-full mb-4">
+        <label for="fileInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
+          <i class="fas fa-images text-4xl text-blue-400 mb-3"></i>
+          <p class="text-slate-300 font-medium">Klik untuk Pilih Gambar</p>
+          <p class="text-slate-500 text-xs mt-1">(Bisa pilih lebih dari satu foto)</p>
+        </label>
+        <input type="file" id="fileInput" accept="image/*" multiple class="hidden" onchange="handleFiles()">
+      </div>
+
+      <div id="fileListContainer" class="w-full mb-6 max-h-40 overflow-y-auto hidden">
+        <h3 class="text-sm text-slate-400 mb-2 font-semibold">File Terpilih:</h3>
+        <ul id="fileList" class="space-y-2"></ul>
+      </div>
+
+      <button id="processBtn" onclick="processAllFiles()" disabled class="btn-glossy w-full py-3 sm:py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm">
+        <i class="fas fa-magic mr-2"></i> Ekstrak Jadi Excel
+      </button>
     </div>
 
-    <!-- Area Upload (Mendukung Multiple) -->
-    <div class="w-full mb-4">
-      <label for="fileInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
-        <i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-3"></i>
-        <p class="text-slate-300 font-medium">Klik untuk Pilih Gambar</p>
-        <p class="text-slate-500 text-xs mt-1">(Bisa pilih lebih dari satu foto)</p>
-      </label>
-      <!-- Tambahan atribut "multiple" agar bisa banyak gambar -->
-      <input type="file" id="fileInput" accept="image/*" multiple class="hidden" onchange="handleFiles()">
+    <!-- ================= TAB 2: FORMAT KEMENSOS ================= -->
+    <div id="menu-kemensos" class="tab-content glass-panel rounded-2xl p-6 sm:p-8">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-white">Format Kemensos</h2>
+        <p class="text-slate-400 text-sm mt-2">Ubah Excel mentah menjadi format manual KEMSOS RI</p>
+      </div>
+
+      <div class="w-full mb-6">
+        <label for="excelInput" class="block w-full border-2 border-dashed border-green-500 rounded-xl p-8 text-center cursor-pointer hover:border-green-400 hover:bg-slate-800 transition-all">
+          <i class="fas fa-file-excel text-4xl text-green-400 mb-3"></i>
+          <p class="text-slate-300 font-medium">Upload Excel Hasil Ekstrak</p>
+          <p class="text-slate-500 text-xs mt-1">(.xlsx atau .xls)</p>
+        </label>
+        <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload()">
+      </div>
+      
+      <p id="excelStatus" class="text-center text-sm text-yellow-400 mb-4 hidden">Menunggu proses...</p>
+
+      <button id="convertBtn" onclick="processKemensos()" disabled class="btn-glossy w-full py-3 sm:py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm">
+        <i class="fas fa-sync-alt mr-2"></i> Buat Format Manual
+      </button>
     </div>
 
-    <!-- Area List File yang Dipilih -->
-    <div id="fileListContainer" class="w-full mb-6 max-h-40 overflow-y-auto hidden">
-      <h3 class="text-sm text-slate-400 mb-2 font-semibold">File Terpilih:</h3>
-      <ul id="fileList" class="space-y-2">
-        <!-- List file akan muncul di sini via JS -->
-      </ul>
+    <!-- ================= TAB 3: PENGATURAN ================= -->
+    <div id="menu-pengaturan" class="tab-content glass-panel rounded-2xl p-6 sm:p-8">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-white">Pengaturan</h2>
+        <p class="text-slate-400 text-sm mt-2">Konfigurasi Data SDM & AI</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Nama SDM</label>
+          <input type="text" id="settingNama" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400" placeholder="Masukkan Nama Lengkap">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">NIP</label>
+          <input type="text" id="settingNIP" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400" placeholder="Masukkan NIP">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Gemini API Key</label>
+          <input type="password" id="settingAPI" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400" placeholder="AIzaSy...">
+        </div>
+        
+        <button onclick="saveSettings()" class="btn-glossy w-full py-3 mt-4 rounded-xl font-bold text-white tracking-wide text-sm">
+          <i class="fas fa-save mr-2"></i> Simpan Pengaturan
+        </button>
+      </div>
     </div>
 
-    <!-- Tombol Proses -->
-    <button id="processBtn" onclick="processAllFiles()" disabled class="btn-glossy w-full py-3 sm:py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm">
-      <i class="fas fa-magic mr-2"></i> Ekstrak Semua Gambar
-    </button>
   </div>
 
-  <script>
-    const NIP_USER = "199006212025211050";
-    let selectedFiles = [];
+  <!-- ================= NAVIGASI BAWAH (MOBILE FIRST) ================= -->
+  <nav class="fixed bottom-0 w-full glass-panel border-t border-slate-700 bg-[#0f172a]/90 z-50">
+    <div class="max-w-lg mx-auto flex justify-around">
+      <button onclick="switchTab('menu-ekstrak', this)" class="nav-item active flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white transition-colors relative">
+        <i class="fas fa-camera-retro text-xl mb-1"></i>
+        <span class="text-[10px] font-semibold uppercase tracking-wider">Ekstrak AI</span>
+        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
+      </button>
+      
+      <button onclick="switchTab('menu-kemensos', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white transition-colors relative">
+        <i class="fas fa-file-excel text-xl mb-1"></i>
+        <span class="text-[10px] font-semibold uppercase tracking-wider">Format Excel</span>
+        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-green-500 rounded-b-md"></div>
+      </button>
 
-    // Konfigurasi SweetAlert Toast
+      <button onclick="switchTab('menu-pengaturan', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white transition-colors relative">
+        <i class="fas fa-user-cog text-xl mb-1"></i>
+        <span class="text-[10px] font-semibold uppercase tracking-wider">Pengaturan</span>
+        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // ================= STATE & INIT =================
+    let selectedFiles = [];
+    let uploadedExcelData = [];
+
     const Toast = Swal.mixin({
       toast: true,
-      position: 'top-end',
+      position: 'top',
       showConfirmButton: false,
       timer: 3000,
       timerProgressBar: true,
       background: '#1e293b',
-      color: '#fff',
-      customClass: { popup: 'glass-panel' }
+      color: '#fff'
     });
 
-    // Cek API Key saat web dimuat
     document.addEventListener("DOMContentLoaded", () => {
+      loadSettings();
       const savedKey = localStorage.getItem('GEMINI_API_KEY');
       if (!savedKey) {
-        setTimeout(openSettings, 1000); // Minta API Key jika belum ada
+        Swal.fire({
+          icon: 'info',
+          title: 'Selamat Datang!',
+          text: 'Silakan menuju menu Pengaturan untuk memasukkan NIP, Nama, dan API Key terlebih dahulu.',
+          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
+        });
       }
     });
 
-    function openSettings() {
-      const currentKey = localStorage.getItem('GEMINI_API_KEY') || '';
-      Swal.fire({
-        title: 'Pengaturan Mesin AI',
-        html: `
-          <p class="text-sm text-slate-300 mb-4 text-left">Masukkan <b>Gemini API Key</b> Anda. Key ini disimpan secara aman di browser Anda dan tidak akan dikirim ke server manapun kecuali langsung ke Google.</p>
-          <input id="swal-input-apikey" class="swal2-input bg-slate-800 text-white border border-slate-600 rounded-lg w-full max-w-xs" placeholder="AIzaSy..." value="${currentKey}">
-        `,
-        background: '#0f172a',
-        color: '#fff',
-        showCancelButton: true,
-        confirmButtonText: 'Simpan',
-        cancelButtonText: 'Batal',
-        confirmButtonColor: '#3b82f6',
-        cancelButtonColor: '#475569',
-        preConfirm: () => {
-          const key = document.getElementById('swal-input-apikey').value;
-          if (!key) {
-            Swal.showValidationMessage('API Key tidak boleh kosong');
-          }
-          return key;
-        }
-      }).then((result) => {
-        if (result.isConfirmed) {
-          localStorage.setItem('GEMINI_API_KEY', result.value);
-          Toast.fire({ icon: 'success', title: 'API Key Tersimpan!' });
-        }
-      });
+    // ================= NAVIGASI TABS =================
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+      element.classList.add('active');
     }
 
+    // ================= PENGATURAN =================
+    function loadSettings() {
+      document.getElementById('settingNama').value = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
+      document.getElementById('settingNIP').value = localStorage.getItem('SDM_NIP') || '199006212025211050';
+      document.getElementById('settingAPI').value = localStorage.getItem('GEMINI_API_KEY') || '';
+    }
+
+    function saveSettings() {
+      localStorage.setItem('SDM_NAMA', document.getElementById('settingNama').value);
+      localStorage.setItem('SDM_NIP', document.getElementById('settingNIP').value);
+      localStorage.setItem('GEMINI_API_KEY', document.getElementById('settingAPI').value);
+      Toast.fire({ icon: 'success', title: 'Pengaturan Tersimpan!' });
+    }
+
+    // ================= FITUR 1: EKSTRAK GAMBAR KE EXCEL =================
     function handleFiles() {
       const input = document.getElementById('fileInput');
       const container = document.getElementById('fileListContainer');
       const list = document.getElementById('fileList');
       const btn = document.getElementById('processBtn');
 
-      // Tambahkan file baru ke array (tidak menimpa yang lama)
       Array.from(input.files).forEach(file => {
-        // Cek duplikasi nama file
         if (!selectedFiles.some(f => f.name === file.name)) {
           selectedFiles.push(file);
         }
       });
       
-      // Render ulang list UI
-      renderFileList();
+      list.innerHTML = "";
+      selectedFiles.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = "glass-item rounded-lg p-3 flex justify-between items-center text-sm";
+        const namaFile = file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name;
+        li.innerHTML = `
+          <div class="flex items-center text-slate-200"><i class="fas fa-image text-blue-400 mr-3"></i>${namaFile}</div>
+          <button onclick="removeFile(${index})" class="text-red-400 hover:text-red-300 transition"><i class="fas fa-trash"></i></button>
+        `;
+        list.appendChild(li);
+      });
 
       if (selectedFiles.length > 0) {
         container.classList.remove('hidden');
@@ -176,210 +272,198 @@
       } else {
         container.classList.add('hidden');
         btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak Semua Gambar`;
+        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak Jadi Excel`;
       }
-      
-      // Reset input file agar bisa pilih file yang sama lagi jika dihapus
       input.value = ""; 
-    }
-
-    function renderFileList() {
-      const list = document.getElementById('fileList');
-      list.innerHTML = "";
-      
-      selectedFiles.forEach((file, index) => {
-        const li = document.createElement('li');
-        li.className = "glass-item rounded-lg p-3 flex justify-between items-center text-sm";
-        
-        const namaFile = file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name;
-        
-        li.innerHTML = `
-          <div class="flex items-center text-slate-200">
-            <i class="fas fa-image text-blue-400 mr-3"></i>
-            ${namaFile}
-          </div>
-          <button onclick="removeFile(${index})" class="text-red-400 hover:text-red-300 transition">
-            <i class="fas fa-trash"></i>
-          </button>
-        `;
-        list.appendChild(li);
-      });
     }
 
     function removeFile(index) {
       selectedFiles.splice(index, 1);
-      handleFiles(); // Update UI
+      handleFiles();
     }
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
 
     async function processAllFiles() {
       const apiKey = localStorage.getItem('GEMINI_API_KEY');
-      if (!apiKey) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'API Key Belum Diisi',
-          text: 'Klik ikon gear/pengaturan di pojok kanan atas untuk memasukkan Gemini API Key.',
-          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
-        });
-        return;
-      }
+      if (!apiKey) return Toast.fire({ icon: 'error', title: 'API Key Belum Diisi!' });
 
-      const btn = document.getElementById('processBtn');
-      btn.disabled = true;
+      document.getElementById('processBtn').disabled = true;
 
-      // Loading Keren SweetAlert dengan Progress dinamis
-      let progressPopup = Swal.fire({
+      Swal.fire({
         title: 'Menganalisa Data...',
-        html: `Memproses gambar <b id="progressCount">1</b> dari <b>${selectedFiles.length}</b><br><br><span class="text-sm text-slate-400">Mohon jangan tutup halaman ini.</span>`,
+        html: `Memproses gambar <b id="progressCount">1</b> dari <b>${selectedFiles.length}</b><br><span class="text-sm text-slate-400">Mohon tunggu...</span>`,
         allowOutsideClick: false,
-        background: '#0f172a',
-        color: '#fff',
+        background: '#0f172a', color: '#fff',
         didOpen: () => { Swal.showLoading(); }
       });
 
       let allExtractedData = [];
-      let successCount = 0;
-      let failCount = 0;
+      let successCount = 0, failCount = 0;
+      const nipUser = localStorage.getItem('SDM_NIP') || '199006212025211050';
+      const namaUser = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
 
-      // Loop Pemrosesan berurutan (Sequential) agar API tidak Rate Limit
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        
-        // Update UI Angka Progress
-        const progressCountEl = document.getElementById('progressCount');
-        if(progressCountEl) progressCountEl.innerText = (i + 1);
+        if(document.getElementById('progressCount')) document.getElementById('progressCount').innerText = (i + 1);
 
         try {
           const base64Data = await toBase64(file);
-          const mimeType = file.type;
-          
-          // Panggil fungsi ekstrak
-          const resultData = await extractDataFromGemini(base64Data, mimeType, apiKey);
-          
-          if (resultData && resultData.length > 0) {
+          const resultData = await extractDataFromGemini(base64Data, file.type, apiKey, nipUser, namaUser);
+          if (resultData.length > 0) {
             allExtractedData = allExtractedData.concat(resultData);
             successCount++;
-          } else {
-            failCount++;
-          }
-        } catch (error) {
-          console.error("Error pada file", file.name, error);
-          failCount++;
-        }
+          } else { failCount++; }
+        } catch (error) { failCount++; }
       }
 
       if (allExtractedData.length > 0) {
         Swal.fire({
-          icon: 'success',
-          title: 'Selesai!',
-          html: `Berhasil mengekstrak <b>${successCount}</b> gambar.<br>Gagal: ${failCount} gambar.<br><br>Total Data Kehadiran: <b>${allExtractedData.length} baris</b>.`,
+          icon: 'success', title: 'Selesai!',
+          html: `Berhasil: <b>${successCount}</b> gambar.<br>Gagal: ${failCount} gambar.<br>Total Baris: <b>${allExtractedData.length}</b>.`,
           background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
         });
-        
-        // Generate dan Download 1 File CSV Gabungan
-        generateCSV(allExtractedData);
-        
-        // Bersihkan list file setelah sukses
+        generateExcel(allExtractedData, "Hasil_Ekstrak_Absensi.xlsx");
         selectedFiles = [];
         handleFiles();
       } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Gagal Ekstrak',
-          text: 'Tidak ada data kehadiran yang terdeteksi dari semua gambar yang diupload.',
-          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
-        });
+        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tidak ada data ditemukan.', background: '#0f172a', color: '#fff' });
       }
-
-      btn.disabled = false;
+      document.getElementById('processBtn').disabled = false;
     }
 
-    // Helper: Konversi File ke Base64
-    const toBase64 = file => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]); // Ambil data murninya saja
-      reader.onerror = error => reject(error);
-    });
-
-    async function extractDataFromGemini(base64Data, mimeType, apiKey) {
+    async function extractDataFromGemini(base64Data, mimeType, apiKey, nipUser, namaUser) {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      
       const payload = {
         contents: [{
           parts: [
-            { text: "Ekstrak riwayat kehadiran dari gambar ini. Cari tanggal, jam masuk, jam pulang, dan jenis kehadiran (seperti 'Fleksibel Bekerja Secara Lokasi' atau 'Bekerja di Kantor'). KEMBALIKAN HANYA JSON ARRAY MURNI TANPA MARKDOWN (tanpa ```json). Format yang wajib diikuti: [{\"tanggal\": \"DD-MM-YYYY\", \"jamMasuk\": \"HH:MM\", \"jamPulang\": \"HH:MM\", \"jenis\": \"Fleksibel Bekerja Secara Lokasi\"}]." },
+            { text: "Ekstrak riwayat kehadiran dari gambar ini. Cari tanggal, jam masuk, jam pulang, dan jenis kehadiran (seperti 'Fleksibel Bekerja Secara Lokasi' atau 'Bekerja di Kantor'). KEMBALIKAN HANYA JSON ARRAY MURNI TANPA MARKDOWN. Format wajib: [{\"tanggal\": \"DD-MM-YYYY\", \"jamMasuk\": \"HH:MM\", \"jamPulang\": \"HH:MM\", \"jenis\": \"Fleksibel Bekerja Secara Lokasi\"}]." },
             { inlineData: { mimeType: mimeType, data: base64Data } }
           ]
         }]
       };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
+      const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!response.ok) throw new Error('API Request Failed');
 
       const data = await response.json();
-      
       if (!data.candidates || data.candidates.length === 0) return [];
 
-      // Bersihkan teks AI menjadi JSON murni
-      let jsonString = data.candidates[0].content.parts[0].text;
-      jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
-      
+      let jsonString = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(jsonString);
       let formattedResults = [];
 
-      // Parsing berdasar aturan (Template Tidak Berubah)
       parsedData.forEach(item => {
         if (item.jamMasuk && item.jamMasuk !== '-' && item.jamMasuk !== '--:--') {
-          formattedResults.push({
-            nip: NIP_USER,
-            tanggal: item.tanggal,
-            kategori: "Masuk",
-            jenis: item.jenis || "Fleksibel Bekerja Secara Lokasi",
-            waktu: item.jamMasuk + ":00",
-            keterangan: "Import dari riwayat kehadiran aplikasi"
-          });
+          formattedResults.push({ "NAMA": namaUser, "NIP": nipUser, "TANGGAL": item.tanggal, "KATEGORI": "Masuk", "JENIS": item.jenis || "Fleksibel", "WAKTU": item.jamMasuk + ":00" });
         }
-        
         if (item.jamPulang && item.jamPulang !== '-' && item.jamPulang !== '--:--') {
-          formattedResults.push({
-            nip: NIP_USER,
-            tanggal: item.tanggal,
-            kategori: "Pulang",
-            jenis: item.jenis || "Fleksibel Bekerja Secara Lokasi",
-            waktu: item.jamPulang + ":00",
-            keterangan: "Import dari riwayat kehadiran aplikasi"
-          });
+          formattedResults.push({ "NAMA": namaUser, "NIP": nipUser, "TANGGAL": item.tanggal, "KATEGORI": "Pulang", "JENIS": item.jenis || "Fleksibel", "WAKTU": item.jamPulang + ":00" });
         }
       });
-
       return formattedResults;
     }
 
-    function generateCSV(dataArray) {
-      const header = ["NIP", "TANGGAL", "KATEGORI", "JENIS", "WAKTU", "KETERANGAN"];
-      const csvRows = [header.join(",")];
+    // Fungsi Global Export Excel dgn SheetJS
+    function generateExcel(dataArray, filename) {
+      const worksheet = XLSX.utils.json_to_sheet(dataArray);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+      XLSX.writeFile(workbook, filename);
+    }
+
+
+    // ================= FITUR 2: KONVERSI KE FORMAT KEMENSOS =================
+    function handleExcelUpload() {
+      const fileInput = document.getElementById('excelInput');
+      const statusText = document.getElementById('excelStatus');
+      const convertBtn = document.getElementById('convertBtn');
       
-      dataArray.forEach(row => {
-        const values = [row.nip, row.tanggal, row.kategori, row.jenis, row.waktu, row.keterangan];
-        csvRows.push(values.join(","));
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      statusText.classList.remove('hidden');
+      statusText.innerText = `Membaca ${file.name}...`;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert ke JSON
+        uploadedExcelData = XLSX.utils.sheet_to_json(worksheet);
+        
+        if(uploadedExcelData.length > 0) {
+          statusText.innerText = `Berhasil memuat ${uploadedExcelData.length} baris data.`;
+          statusText.className = "text-center text-sm text-green-400 mb-4 block";
+          convertBtn.disabled = false;
+        } else {
+          statusText.innerText = "Excel kosong atau format tidak sesuai.";
+          statusText.className = "text-center text-sm text-red-400 mb-4 block";
+          convertBtn.disabled = true;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function processKemensos() {
+      if (uploadedExcelData.length === 0) return;
+
+      // Grouping data by Tanggal
+      let groupedData = {};
+      
+      uploadedExcelData.forEach(row => {
+        let tgl = row["TANGGAL"];
+        if (!tgl) return; // Skip baris tanpa tanggal
+
+        if (!groupedData[tgl]) {
+          groupedData[tgl] = {
+            "NO": 0,
+            "NAMA": row["NAMA"] || localStorage.getItem('SDM_NAMA'),
+            "NIP": row["NIP"] || localStorage.getItem('SDM_NIP'),
+            "TANGGAL": tgl,
+            "JAM MASUK": "-",
+            "JAM PULANG": "-",
+            "KETERANGAN": row["JENIS"] || "Hadir"
+          };
+        }
+
+        let kategori = (row["KATEGORI"] || "").toUpperCase();
+        let waktu = row["WAKTU"] || "";
+        
+        if (kategori === "MASUK") groupedData[tgl]["JAM MASUK"] = waktu;
+        if (kategori === "PULANG") groupedData[tgl]["JAM PULANG"] = waktu;
       });
-      
-      const csvString = csvRows.join("\n");
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-      
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "Import_Absensi_MULTI_HASIL.csv");
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      // Jadikan Array dan Beri Nomor Urut
+      let finalKemensosFormat = Object.values(groupedData).map((item, index) => {
+        item["NO"] = index + 1;
+        return item;
+      });
+
+      if (finalKemensosFormat.length > 0) {
+        // Render File Absen Manual PPPK KEMSOS RI.xlsx
+        generateExcel(finalKemensosFormat, "Absen Manual PPPK KEMSOS RI.xlsx");
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Dikonversi!',
+          text: 'File Absen Manual PPPK KEMSOS RI.xlsx telah diunduh.',
+          background: '#0f172a', color: '#fff', confirmButtonColor: '#3b82f6'
+        });
+        
+        // Reset state upload
+        document.getElementById('excelInput').value = "";
+        document.getElementById('excelStatus').classList.add('hidden');
+        document.getElementById('convertBtn').disabled = true;
+      }
     }
   </script>
 </body>
