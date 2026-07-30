@@ -3,157 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Absen Kemensos Pro V2.5</title>
+  <title>Sistem Ekstrak Absensi Pro - Gemini 2.5</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SheetJS untuk membuat file Excel persis seperti template -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <style>
-    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; }
+    body { background-color: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
     .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
     .btn-glossy { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); transition: all 0.3s ease; }
-    .btn-glossy:hover:not(:disabled) { transform: translateY(-2px); }
-    .btn-glossy:disabled { background: #334155; cursor: not-allowed; opacity: 0.7; }
-    .btn-success { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); transition: all 0.3s ease; }
+    .btn-glossy:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 15px rgba(59,130,246,0.5); }
+    .btn-glossy:disabled { background: #334155; cursor: not-allowed; opacity: 0.7; transform: none; box-shadow: none; }
     .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
     .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .nav-item.active { color: #3b82f6; }
-    .nav-item.active .nav-indicator { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="pb-24">
+<body class="p-4 flex flex-col items-center pb-24">
 
-  <div class="w-full max-w-lg mx-auto mt-6 px-4">
-    
-    <!-- ================= TAB 1: MENU EKSTRAK OCR GAMBAR ================= -->
-    <div id="menu-ocr" class="tab-content active glass-panel rounded-2xl p-6">
-      <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-white">Tahap 1: Ekstrak Gambar</h2>
-        <p class="text-slate-400 text-sm mt-1">Ubah Screenshot jadi Data Excel Mentah</p>
-      </div>
+  <div class="w-full max-w-lg mt-4">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
+        E-Laporan OCR AI
+      </h2>
+      <p class="text-slate-400 text-sm mt-2">Powered by Gemini 2.5 Flash</p>
+    </div>
 
+    <!-- TAB 1: UPLOAD GAMBAR -->
+    <div id="tab-upload" class="tab-content active glass-panel rounded-2xl p-6 mb-4">
       <div class="w-full mb-4">
-        <label for="imgInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
-          <i class="fas fa-images text-3xl text-blue-400 mb-2"></i>
-          <p class="text-slate-300 font-medium">Upload Screenshot Absen</p>
-          <p class="text-slate-500 text-xs mt-1">Pilih semua gambar sekaligus</p>
+        <label for="imgInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-slate-800 transition-all">
+          <i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-3"></i>
+          <p class="text-slate-300 font-medium">Klik untuk Pilih Gambar Kehadiran</p>
+          <p class="text-slate-500 text-xs mt-1">(Bisa pilih banyak gambar sekaligus)</p>
         </label>
         <input type="file" id="imgInput" accept="image/*" multiple class="hidden" onchange="handleImages()">
       </div>
 
-      <div id="imgListContainer" class="w-full mb-4 max-h-32 overflow-y-auto hidden">
+      <div id="imgListContainer" class="w-full mb-4 max-h-40 overflow-y-auto hidden">
         <ul id="imgList" class="space-y-2"></ul>
       </div>
 
-      <button id="btnProcessOCR" onclick="processOCR()" disabled class="btn-glossy w-full py-4 rounded-xl font-bold text-white uppercase tracking-wide text-sm mt-2">
-        <i class="fas fa-file-export mr-2"></i> Ekstrak & Download Excel
+      <button id="btnProcess" onclick="processAllImages()" disabled class="btn-glossy w-full py-4 rounded-xl font-bold text-white tracking-wide">
+        <i class="fas fa-magic mr-2"></i> Ekstrak & Buat Template Excel
       </button>
     </div>
 
-    <!-- ================= TAB 2: MENU UPLOAD EXCEL & GENERATE MANUAL ================= -->
-    <div id="menu-generate" class="tab-content glass-panel rounded-2xl p-6">
-      <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-white">Tahap 2: Buat Absen Manual</h2>
-        <p class="text-slate-400 text-sm mt-1">Upload Data Excel -> Format Kemensos RI</p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label class="block text-sm text-slate-400 mb-1">Bulan</label>
-          <select id="selectBulan" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-green-400">
-            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
-            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
-            <option value="7" selected>Juli</option><option value="8">Agustus</option><option value="9">September</option>
-            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm text-slate-400 mb-1">Tahun</label>
-          <input type="number" id="selectTahun" value="2026" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-green-400">
-        </div>
-      </div>
-
-      <div class="w-full mb-4">
-        <label for="excelInput" class="block w-full border-2 border-dashed border-slate-500 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 hover:bg-slate-800 transition-all">
-          <i class="fas fa-file-excel text-3xl text-green-400 mb-2"></i>
-          <p class="text-slate-300 font-medium" id="excelLabel">Upload File Excel (Hasil Tahap 1)</p>
-        </label>
-        <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcel()">
-      </div>
-
-      <button id="btnProcessManual" onclick="processGenerateManual()" disabled class="btn-success text-white w-full py-4 rounded-xl font-bold uppercase tracking-wide text-sm mt-2">
-        <i class="fas fa-calendar-check mr-2"></i> Generate Absensi Manual
-      </button>
-    </div>
-
-    <!-- ================= TAB 3: PENGATURAN ================= -->
-    <div id="menu-pengaturan" class="tab-content glass-panel rounded-2xl p-6">
-      <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold text-white">Pengaturan Identitas</h2>
-      </div>
+    <!-- TAB 2: PENGATURAN -->
+    <div id="tab-pengaturan" class="tab-content glass-panel rounded-2xl p-6 mb-4">
+      <h3 class="text-lg font-bold text-white mb-4"><i class="fas fa-cog mr-2"></i> Pengaturan Sistem</h3>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm text-slate-400 mb-1">Nama Lengkap</label>
-          <input type="text" id="settingNama" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none">
+          <label class="block text-sm text-slate-400 mb-1">NIP (Untuk Template)</label>
+          <input type="text" id="setNIP" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3" value="199006212025211050">
         </div>
         <div>
-          <label class="block text-sm text-slate-400 mb-1">NIP</label>
-          <input type="text" id="settingNIP" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none">
+          <label class="block text-sm text-slate-400 mb-1">Token / API Key (AIza... atau AQ...)</label>
+          <input type="password" id="setAPI" class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3" placeholder="Masukkan token di sini">
         </div>
-        <div>
-          <label class="block text-sm text-slate-400 mb-1">Gemini API Key (Diawali AIzaSy...)</label>
-          <input type="password" id="settingAPI" placeholder="AIzaSy..." class="w-full bg-slate-800 text-white border border-slate-600 rounded-lg p-3 outline-none focus:border-blue-400">
-          <p class="text-xs text-slate-500 mt-1">Jika dikosongkan, aplikasi akan menggunakan endpoint Vercel Serverless (/api/ocr).</p>
-        </div>
-        <button onclick="saveSettings()" class="btn-glossy w-full py-3 mt-4 rounded-xl font-bold text-white tracking-wide text-sm">
-          Simpan Pengaturan
-        </button>
+        <button onclick="saveSettings()" class="btn-glossy w-full py-3 rounded-xl font-bold text-white">Simpan Pengaturan</button>
       </div>
     </div>
-
   </div>
 
   <!-- NAVIGASI BAWAH -->
-  <nav class="fixed bottom-0 w-full glass-panel border-t border-slate-700 bg-[#0f172a]/90 z-50">
-    <div class="max-w-lg mx-auto flex justify-between px-2">
-      <button onclick="switchTab('menu-ocr', this)" class="nav-item active flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
-        <i class="fas fa-camera text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">1. Ekstrak Gambar</span>
-        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
+  <nav class="fixed bottom-0 w-full glass-panel border-t border-slate-700 bg-[#0f172a]/95 z-50">
+    <div class="max-w-lg mx-auto flex justify-between px-4">
+      <button onclick="switchTab('tab-upload')" class="flex-1 py-4 flex flex-col items-center text-blue-400">
+        <i class="fas fa-home text-xl mb-1"></i><span class="text-[10px] font-bold uppercase">Beranda</span>
       </button>
-      <button onclick="switchTab('menu-generate', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
-        <i class="fas fa-file-excel text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">2. Buat Manual</span>
-        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-green-500 rounded-b-md"></div>
-      </button>
-      <button onclick="switchTab('menu-pengaturan', this)" class="nav-item flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white relative">
-        <i class="fas fa-user-cog text-xl mb-1"></i><span class="text-[10px] font-semibold uppercase">Pengaturan</span>
-        <div class="nav-indicator hidden absolute top-0 w-8 h-1 bg-blue-500 rounded-b-md"></div>
+      <button onclick="switchTab('tab-pengaturan')" class="flex-1 py-4 flex flex-col items-center text-slate-400 hover:text-white transition">
+        <i class="fas fa-sliders-h text-xl mb-1"></i><span class="text-[10px] font-bold uppercase">Pengaturan</span>
       </button>
     </div>
   </nav>
 
   <script>
-    let selectedImages = [];
-    let uploadedExcelData = [];
+    let selectedFiles = [];
 
     document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById('settingNama').value = localStorage.getItem('SDM_NAMA') || 'M. Zaen Syachrullah';
-      document.getElementById('settingNIP').value = localStorage.getItem('SDM_NIP') || '199006212025211050';
-      document.getElementById('settingAPI').value = localStorage.getItem('GEMINI_API_KEY') || '';
+      // Load pengaturan yang tersimpan
+      document.getElementById('setNIP').value = localStorage.getItem('APP_NIP') || '199006212025211050';
+      document.getElementById('setAPI').value = localStorage.getItem('APP_TOKEN') || 'AQ.Ab8RN6LNd_cFcFF4szRCD0HdWiwfRrebnscLlKS_s7SQRDRYsg';
     });
 
-    function switchTab(tabId, element) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-      document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-      element.classList.add('active');
     }
 
     function saveSettings() {
-      localStorage.setItem('SDM_NAMA', document.getElementById('settingNama').value);
-      localStorage.setItem('SDM_NIP', document.getElementById('settingNIP').value);
-      localStorage.setItem('GEMINI_API_KEY', document.getElementById('settingAPI').value);
+      localStorage.setItem('APP_NIP', document.getElementById('setNIP').value);
+      localStorage.setItem('APP_TOKEN', document.getElementById('setAPI').value);
       Swal.fire({ icon: 'success', title: 'Tersimpan', toast: true, position: 'top', timer: 2000, showConfirmButton: false, background: '#1e293b', color: '#fff' });
     }
 
@@ -161,33 +105,35 @@
       const input = document.getElementById('imgInput');
       const container = document.getElementById('imgListContainer');
       const list = document.getElementById('imgList');
-      const btn = document.getElementById('btnProcessOCR');
+      const btn = document.getElementById('btnProcess');
 
       Array.from(input.files).forEach(file => {
-        if (!selectedImages.some(f => f.name === file.name)) selectedImages.push(file);
+        if (!selectedFiles.some(f => f.name === file.name)) selectedFiles.push(file);
       });
       
       list.innerHTML = "";
-      selectedImages.forEach((file, index) => {
+      selectedFiles.forEach((file, index) => {
         const li = document.createElement('li');
-        li.className = "bg-slate-800 rounded-lg p-2 flex justify-between items-center text-xs";
-        li.innerHTML = `<div class="text-slate-200 truncate w-3/4"><i class="fas fa-image text-blue-400 mr-2"></i>${file.name}</div>
-                        <button onclick="removeImage(${index})" class="text-red-400"><i class="fas fa-times"></i></button>`;
+        li.className = "bg-slate-800 rounded-lg p-3 flex justify-between items-center text-sm border border-slate-700";
+        li.innerHTML = `<div class="text-slate-200 truncate w-3/4"><i class="fas fa-image text-blue-400 mr-3"></i>${file.name}</div>
+                        <button onclick="removeImage(${index})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>`;
         list.appendChild(li);
       });
 
-      if (selectedImages.length > 0) {
+      if (selectedFiles.length > 0) {
         container.classList.remove('hidden');
         btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak ${selectedFiles.length} Gambar`;
       } else {
         container.classList.add('hidden');
         btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-magic mr-2"></i> Ekstrak & Buat Template Excel`;
       }
       input.value = ""; 
     }
 
     function removeImage(index) {
-      selectedImages.splice(index, 1);
+      selectedFiles.splice(index, 1);
       handleImages();
     }
 
@@ -198,183 +144,134 @@
       reader.onerror = error => reject(error);
     });
 
-    async function processOCR() {
-      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+    async function processAllImages() {
+      const token = document.getElementById('setAPI').value.trim();
+      const nip = document.getElementById('setNIP').value.trim();
+
+      if (!token) {
+        Swal.fire({ icon: 'warning', title: 'Token Kosong', text: 'Harap isi token/API Key di menu Pengaturan.', background: '#0f172a', color: '#fff' });
+        return;
+      }
 
       Swal.fire({
-        title: 'Mengekstrak Data...',
-        html: `Memproses gambar menggunakan Gemini AI.<br><span class="text-sm text-slate-400">Harap tunggu sebentar...</span>`,
+        title: 'Memproses Gambar...',
+        html: `Memanggil Gemini 2.5 Flash.<br><span class="text-sm text-slate-400">Harap tunggu, jangan tutup aplikasi.</span>`,
         allowOutsideClick: false, background: '#0f172a', color: '#fff',
         didOpen: () => { Swal.showLoading(); }
       });
 
-      let extractedRecords = [];
+      let allExtractedData = [];
+      let successCount = 0;
 
       try {
-        for (let i = 0; i < selectedImages.length; i++) {
-          const base64Data = await toBase64(selectedImages[i]);
-          let result = [];
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const base64Data = await toBase64(selectedFiles[i]);
+          const resultJSON = await callGemini25(base64Data, selectedFiles[i].type, token);
           
-          if (apiKey && apiKey.startsWith("AIzaSy")) {
-            // Direct Gemini Client-Side Call dengan Auto-Fallback
-            result = await extractDirectGemini(base64Data, selectedImages[i].type, apiKey);
-          } else {
-            // Call via Vercel Backend /api/ocr
-            result = await extractViaVercelBackend(base64Data, selectedImages[i].type);
+          if (resultJSON && resultJSON.length > 0) {
+             const formattedRows = formatToTemplate(resultJSON, nip);
+             allExtractedData = allExtractedData.concat(formattedRows);
+             successCount++;
           }
-          extractedRecords = extractedRecords.concat(result);
         }
 
-        if (extractedRecords.length === 0) throw new Error("Tidak ada data valid yang ditemukan.");
-
-        const worksheet = XLSX.utils.json_to_sheet(extractedRecords, { header: ["tanggal", "masuk", "pulang", "keterangan"] });
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Data Mentah");
-        XLSX.writeFile(workbook, "Data_Ekstrak_Gambar.xlsx");
-
-        Swal.fire({
-          icon: 'success', title: 'Berhasil!',
-          text: 'File Excel Data Mentah berhasil didownload. Melanjutkan ke Tahap 2...',
-          background: '#0f172a', color: '#fff'
-        }).then(() => {
-          switchTab('menu-generate', document.querySelectorAll('.nav-item')[1]);
-        });
-        
-        selectedImages = [];
-        handleImages();
-
+        if (allExtractedData.length > 0) {
+          generateExcel(allExtractedData);
+          Swal.fire({ icon: 'success', title: 'Sukses!', text: `Berhasil mengekstrak ${successCount} gambar menjadi Template Excel siap pakai.`, background: '#0f172a', color: '#fff' });
+          selectedFiles = [];
+          handleImages();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tidak ada data kehadiran yang bisa dibaca dari gambar tersebut.', background: '#0f172a', color: '#fff' });
+        }
       } catch (error) {
         console.error(error);
-        Swal.fire({ 
-          icon: 'error', 
-          title: 'Gagal Ekstrak', 
-          text: error.message || 'Pastikan API Key diawali AIzaSy... atau Vercel Environment GEMINI_API_KEY sudah diset.', 
-          background: '#0f172a', color: '#fff' 
-        });
+        Swal.fire({ icon: 'error', title: 'Sistem Error', text: error.message, background: '#0f172a', color: '#fff' });
       }
     }
 
-    // Direct API Call Client-Side dengan Dual Model Fallback (2.5-flash -> 1.5-flash)
-    async function extractDirectGemini(base64Data, mimeType, apiKey) {
-      const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
-      let lastError = '';
+    async function callGemini25(base64Data, mimeType, token) {
+      // SISTEM PINTAR: Deteksi jenis token (API Key standar vs OAuth Token)
+      let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+      let headers = { 'Content-Type': 'application/json' };
 
-      for (const model of models) {
-        try {
-          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-          const payload = {
-            contents: [{
-              parts: [
-                { text: `Ekstrak riwayat kehadiran dari gambar ini.
-1. Tanggal format DD-MM-YYYY (contoh: 30/07/2026 jadi 30-07-2026).
-2. Jam Masuk & Pulang format HH:MM. Jika tidak ada, isi "-".
-3. Keterangan isi "Hadir".
-Kembalikan HANYA JSON array murni: [{"tanggal": "DD-MM-YYYY", "masuk": "HH:MM", "pulang": "HH:MM", "keterangan": "Hadir"}]` },
-                { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } }
-              ]
-            }],
-            generationConfig: { response_mime_type: "application/json" }
-          };
+      if (token.startsWith("AIza")) {
+        // Jika API Key biasa, taruh di URL
+        endpoint += `?key=${token}`;
+      } else {
+        // Jika token OAuth (seperti AQ.Ab...), taruh di Authorization Header
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-          const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          if (!res.ok) {
-            lastError = await res.text();
-            continue; // Coba model berikutnya
-          }
-          const data = await res.json();
-          const jsonText = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
-          return JSON.parse(jsonText);
-        } catch (e) {
-          lastError = e.message;
+      const payload = {
+        contents: [{
+          parts: [
+            { text: `Ekstrak riwayat kehadiran dari gambar ini.
+Carilah: Tanggal, Jam Masuk, Jam Pulang, dan Jenis Kehadiran (seperti 'Bekerja di Kantor' atau 'Fleksibel').
+KEMBALIKAN HANYA ARRAY JSON MURNI TANPA MARKDOWN. 
+Format Wajib: [{"tanggal": "DD-MM-YYYY", "jamMasuk": "HH:MM", "jamPulang": "HH:MM", "jenis": "Bekerja di Kantor"}]` },
+            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } }
+          ]
+        }],
+        generationConfig: {
+          response_mime_type: "application/json",
+          temperature: 0.2
         }
-      }
-      throw new Error(`Gagal memanggil API: ${lastError}`);
-    }
-
-    // Call via Serverless Vercel
-    async function extractViaVercelBackend(base64Data, mimeType) {
-      const response = await fetch('/api/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64: base64Data, mimeType: mimeType })
-      });
-      const resData = await response.json();
-      if (resData.status !== 'success') throw new Error(resData.message || 'Gagal dari server Vercel');
-      return resData.data;
-    }
-
-    // ================= TAHAP 2: HANDLE EXCEL & GENERATE ABSEN MANUAL =================
-    function handleExcel() {
-      const file = document.getElementById('excelInput').files[0];
-      if (!file) return;
-
-      document.getElementById('excelLabel').innerText = file.name;
-      document.getElementById('excelLabel').classList.add('text-green-400');
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        uploadedExcelData = XLSX.utils.sheet_to_json(worksheet);
-        document.getElementById('btnProcessManual').disabled = false;
       };
-      reader.readAsArrayBuffer(file);
-    }
 
-    function getDatesInMonth(month, year) {
-      let dates = [];
-      let date = new Date(year, month - 1, 1);
-      while (date.getMonth() === month - 1) {
-        let d = String(date.getDate()).padStart(2, '0');
-        let m = String(date.getMonth() + 1).padStart(2, '0');
-        let y = date.getFullYear();
-        dates.push(`${d}-${m}-${y}`);
-        date.setDate(date.getDate() + 1);
+      const response = await fetch(endpoint, { method: 'POST', headers: headers, body: JSON.stringify(payload) });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Google AI Error (${response.status}): Token mungkin kedaluwarsa atau salah format.`);
       }
-      return dates;
+
+      const data = await response.json();
+      const jsonString = data.candidates[0].content.parts[0].text;
+      return JSON.parse(jsonString);
     }
 
-    function processGenerateManual() {
-      if (uploadedExcelData.length === 0) return;
-
-      const bln = parseInt(document.getElementById('selectBulan').value);
-      const thn = parseInt(document.getElementById('selectTahun').value);
-      const namaPegawai = document.getElementById('settingNama').value;
-      const nipPegawai = document.getElementById('settingNIP').value;
-
-      Swal.fire({ title: 'Menyusun Absensi Manual...', allowOutsideClick: false, background: '#0f172a', color: '#fff', didOpen: () => { Swal.showLoading(); } });
-
-      const monthDates = getDatesInMonth(bln, thn);
-      let finalDataKemensos = [];
-
-      monthDates.forEach((tgl, index) => {
-        let found = uploadedExcelData.find(item => (item.tanggal || item.TANGGAL || item.Tanggal) === tgl);
-
-        finalDataKemensos.push({
-          "NO": index + 1,
-          "NAMA": namaPegawai,
-          "NIP": nipPegawai,
-          "TANGGAL": tgl,
-          "JAM MASUK": found ? (found.masuk || found.MASUK || "-") : "-",
-          "JAM PULANG": found ? (found.pulang || found.PULANG || "-") : "-",
-          "KETERANGAN": found ? (found.keterangan || found.KETERANGAN || "Hadir") : "-"
-        });
+    function formatToTemplate(rawData, nip) {
+      // Mengubah JSON dari AI menjadi bentuk 2 baris (Masuk & Pulang) sesuai Template Excel
+      let rows = [];
+      rawData.forEach(item => {
+        if (item.jamMasuk && item.jamMasuk !== '-' && item.jamMasuk !== '--:--') {
+          rows.push({
+            "NIP": nip,
+            "TANGGAL": item.tanggal,
+            "KATEGORI": "Masuk",
+            "JENIS": item.jenis || "Fleksibel Bekerja Secara Lokasi",
+            "WAKTU": item.jamMasuk + ":00",
+            "KETERANGAN": "Import dari riwayat kehadiran aplikasi"
+          });
+        }
+        if (item.jamPulang && item.jamPulang !== '-' && item.jamPulang !== '--:--') {
+          rows.push({
+            "NIP": nip,
+            "TANGGAL": item.tanggal,
+            "KATEGORI": "Pulang",
+            "JENIS": item.jenis || "Fleksibel Bekerja Secara Lokasi",
+            "WAKTU": item.jamPulang + ":00",
+            "KETERANGAN": "Import dari riwayat kehadiran aplikasi"
+          });
+        }
       });
+      return rows;
+    }
 
-      setTimeout(() => {
-        const worksheet = XLSX.utils.json_to_sheet(finalDataKemensos, { 
-          header: ["NO", "NAMA", "NIP", "TANGGAL", "JAM MASUK", "JAM PULANG", "KETERANGAN"]
-        });
-        const workbook = XLSX.utils.book_new();
-        worksheet['!cols'] = [ { wch: 5 }, { wch: 30 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 } ];
+    function generateExcel(dataArray) {
+      // Membuat worksheet Excel menggunakan library SheetJS
+      const worksheet = XLSX.utils.json_to_sheet(dataArray, { 
+        header: ["NIP", "TANGGAL", "KATEGORI", "JENIS", "WAKTU", "KETERANGAN"]
+      });
+      
+      // Mengatur lebar kolom agar rapi
+      worksheet['!cols'] = [ {wch: 22}, {wch: 15}, {wch: 12}, {wch: 35}, {wch: 12}, {wch: 40} ];
 
-        let namaBulan = document.getElementById('selectBulan').options[document.getElementById('selectBulan').selectedIndex].text;
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Absen Manual");
-        XLSX.writeFile(workbook, `Absen_Manual_Kemensos_${namaBulan}_${thn}.xlsx`);
-
-        Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'File Absensi Manual Full Sebulan berhasil terunduh.', background: '#0f172a', color: '#fff' });
-      }, 800);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+      
+      // Download File
+      XLSX.writeFile(workbook, "Template_Import_Absensi_Generated.xlsx");
     }
   </script>
 </body>
